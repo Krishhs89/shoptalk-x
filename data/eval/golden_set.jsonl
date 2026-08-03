@@ -1,0 +1,40 @@
+{"query_id": "q0000", "query": "accessory", "template": "plain", "category": "ACCESSORY", "seed_item_id": "B08GYR9PJC", "positive_ids": ["B08GYR9PJC"]}
+{"query_id": "q0001", "query": "365 Everyday Value bread", "template": "brand", "category": "BREAD", "seed_item_id": "B07KCSH2BH", "positive_ids": ["B07KCSH2BH"]}
+{"query_id": "q0002", "query": "365 by Whole Foods Market medication", "template": "brand", "category": "MEDICATION", "seed_item_id": "B07M9487MT", "positive_ids": ["B07M9487MT"]}
+{"query_id": "q0003", "query": "affordable black computer add on from AmazonBasics", "template": "affordable_brand_color", "category": "COMPUTER_ADD_ON", "seed_item_id": "B0134QJH4G", "positive_ids": ["B0134QJH4G"]}
+{"query_id": "q0004", "query": "black shelf", "template": "color", "category": "SHELF", "seed_item_id": "B00X4SCCFG", "positive_ids": ["B00X4SCCFG"]}
+{"query_id": "q0005", "query": "Strathwood by Amazon.com table", "template": "brand", "category": "TABLE", "seed_item_id": "B00GBVDK40", "positive_ids": ["B00GBVDK40"]}
+{"query_id": "q0006", "query": "AmazonBasics office products", "template": "brand", "category": "OFFICE_PRODUCTS", "seed_item_id": "B0879XRBS2", "positive_ids": ["B0868F36L1", "B0879XRBS2"]}
+{"query_id": "q0007", "query": "AmazonBasics home", "template": "brand", "category": "HOME", "seed_item_id": "B075D9TBDV", "positive_ids": ["B075D9TBDV"]}
+{"query_id": "q0008", "query": "affordable black shoes from find.", "template": "affordable_brand_color", "category": "SHOES", "seed_item_id": "B06XGFFCZ6", "positive_ids": ["B07RW5HMZB", "B06XGFFCZ6"]}
+{"query_id": "q0009", "query": "AmazonCommercial cleaning agent", "template": "brand", "category": "CLEANING_AGENT", "seed_item_id": "B086R6KQGC", "positive_ids": ["B086R6KQGC"]}
+{"query_id": "q0010", "query": "affordable multicolor skin cleaning wipe from Mama Bear", "template": "affordable_brand_color", "category": "SKIN_CLEANING_WIPE", "seed_item_id": "B07HB3PJ2F", "positive_ids": ["B07HB3PJ2F"]}
+{"query_id": "q0011", "query": "affordable black, silver biss from AmazonBasics", "template": "affordable_brand_color", "category": "BISS", "seed_item_id": "B08D9QYFJS", "positive_ids": ["B08D9QYFJS"]}
+{"query_id": "q0012", "query": "necklace under $200", "template": "price", "category": "NECKLACE", "seed_item_id": "B01M032SKV", "positive_ids": ["B01M032SKV", "B07HCQ15CD"]}
+{"query_id": "q0013", "query": "kitchen", "template": "plain", "category": "KITCHEN", "seed_item_id": "B01MEEBCHA", "positive_ids": ["B01MEEBCHA"]}
+{"query_id": "q0014", "query": "cellular phone case under $10", "template": "price", "category": "CELLULAR_PHONE_CASE", "seed_item_id": "B081HNV8VR", "positive_ids": ["B081HNV8VR", "B07T14V1ZG", "B07TG4V6V5", "B07R7WQQMN", "B081HNQS3N", "B07SZ73NC4", "B0857KV4GJ", "B07TCWSGK8"]}
+{"query_id": "q0015", "query": "black flat screen display mount by AmazonBasics", "template": "brand_color", "category": "FLAT_SCREEN_DISPLAY_MOUNT", "seed_item_id": "B08H5Q7GDC", "positive_ids": ["B08H5Q7GDC"]}
+{"query_id": "q0016", "query": "Fresh Prepared cake", "template": "brand", "category": "CAKE", "seed_item_id": "B084QGZSSV", "positive_ids": ["B084QGZSSV"]}
+{"query_id": "q0017", "query": "cielo blue stretch satin boot by The Fix", "template": "brand_color", "category": "BOOT", "seed_item_id": "B078FBC4ML", "positive_ids": ["B078FBC4ML"]}
+{"query_id": "q0018", "query": "Rivet rug", "template": "brand", "category": "RUG", "seed_item_id": "B073F7GFKB", "positive_ids": ["B073F7GFKB"]}
+{"query_id": "q0019", "query": "365 Everyday Value grocery", "template": "brand", "category": "GROCERY", "seed_item_id": "B07DFRWQCR", "positive_ids": ["B07DFRWQCR", "B079WWYFMC", "B074H5LYKN"]}
+{"query_id": "q0020", "query": "home mirror", "template": "plain", "category": "HOME_MIRROR", "seed_item_id": "B073WHZK9W", "positive_ids": ["B073WHZK9W"]}
+{"query_id": "q0021", "query": "sofa", "template": "plain", "category": "SOFA", "seed_item_id": "B07HZ1L353", "positive_ids": ["B07HZ1L353"]}
+{"query_id": "q0022", "query": "hemp stool seating by Ravenna Home", "template": "brand_color", "category": "STOOL_SEATING", "seed_item_id": "B07QGWMTJT", "positive_ids": ["B07QGWMTJT"]}
+{"query_id": "q0023", "query": "toy figure", "template": "plain", "category": "TOY_FIGURE", "seed_item_id": "B081ZKCDZM", "positive_ids": ["B081ZKCDZM"]}
+{"query_id": "q0024", "query": "Amazon Collection finenecklacebraceletanklet", "template": "brand", "category": "FINENECKLACEBRACELETANKLET", "seed_item_id": "B0156G2UQ4", "positive_ids": ["B0156G2UQ4"]}
+{"query_id": "q0025", "query": "affordable others cellular phone case from Amazon Brand - Solimo", "template": "affordable_brand_color", "category": "CELLULAR_PHONE_CASE", "seed_item_id": "B07THRDPK1", "positive_ids": ["B07T22LSXW", "B07T9TMQKB", "B07T14V1ZG", "B07T9TN7VK", "B07TG3TW46", "B07TCWSWY4", "B07TF1B95F", "B07TG4VZV9"]}
+{"query_id": "q0026", "query": "affordable marine home from Pinzon by Amazon.com", "template": "affordable_brand_color", "category": "HOME", "seed_item_id": "B000T2WY6W", "positive_ids": ["B000T2WY6W"]}
+{"query_id": "q0027", "query": "affordable multicolor home from Amazon Brand - Solimo", "template": "affordable_brand_color", "category": "HOME", "seed_item_id": "B081FHWVXZ", "positive_ids": ["B081FHWVXZ"]}
+{"query_id": "q0028", "query": "finering", "template": "plain", "category": "FINERING", "seed_item_id": "B07HCM4TM8", "positive_ids": ["B07HCM4TM8"]}
+{"query_id": "q0029", "query": "health personal care under $200", "template": "price", "category": "HEALTH_PERSONAL_CARE", "seed_item_id": "B07G5VKMN3", "positive_ids": ["B07G5VKMN3", "B07YD54KM6"]}
+{"query_id": "q0030", "query": "luggage under $50", "template": "price", "category": "LUGGAGE", "seed_item_id": "B07FP4XZP8", "positive_ids": ["B07FP4XZP8"]}
+{"query_id": "q0031", "query": "wall art", "template": "plain", "category": "WALL_ART", "seed_item_id": "B073NZQR38", "positive_ids": ["B075YLSBMR", "B073NZQR38"]}
+{"query_id": "q0032", "query": "pet supplies under $75", "template": "price", "category": "PET_SUPPLIES", "seed_item_id": "B07DWBXD4G", "positive_ids": ["B07DWBXD4G"]}
+{"query_id": "q0033", "query": "black chair by AmazonBasics", "template": "brand_color", "category": "CHAIR", "seed_item_id": "B087ZFFSZB", "positive_ids": ["B087ZFFSZB"]}
+{"query_id": "q0034", "query": "AmazonBasics light bulb", "template": "brand", "category": "LIGHT_BULB", "seed_item_id": "B07FVXNYVW", "positive_ids": ["B07FVXNYVW"]}
+{"query_id": "q0035", "query": "affordable multicolor wall art from Rivet", "template": "affordable_brand_color", "category": "WALL_ART", "seed_item_id": "B075YLSBMR", "positive_ids": ["B075YLSBMR"]}
+{"query_id": "q0036", "query": "screen protector under $25", "template": "price", "category": "SCREEN_PROTECTOR", "seed_item_id": "B07VRBX3FP", "positive_ids": ["B07VRBX3FP"]}
+{"query_id": "q0037", "query": "home lighting and lamps under $200", "template": "price", "category": "HOME_LIGHTING_AND_LAMPS", "seed_item_id": "B07T5G19FG", "positive_ids": ["B07T5G19FG"]}
+{"query_id": "q0038", "query": "flat black toilet paper holder", "template": "color", "category": "TOILET_PAPER_HOLDER", "seed_item_id": "B088XXNCMB", "positive_ids": ["B088XXNCMB"]}
+{"query_id": "q0039", "query": "AmazonBasics auto accessory", "template": "brand", "category": "AUTO_ACCESSORY", "seed_item_id": "B07C5PW5PQ", "positive_ids": ["B07C5PW5PQ"]}

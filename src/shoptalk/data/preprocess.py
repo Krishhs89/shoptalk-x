@@ -84,7 +84,7 @@ def _all_english(field_list: list, language_prefix: str = "en") -> list:
 
 
 def clean_text(text: str) -> str:
-    text = text.replace("​", " ")  # zero-width space seen in some ABO fields
+    text = text.replace("\u200b", " ")  # zero-width space seen in some ABO fields
     text = WHITESPACE_RE.sub(" ", text)
     return text.strip()
 

@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# Correctness + import hygiene -- pyflakes, pycodestyle errors, isort.
+# Deliberately not enabling ruff's stricter opinionated rule sets (SIM,
+# RUF, PLE, ...): they flag style preferences, not defects, and would
+# demand large diffs across an otherwise-working codebase for no
+# behavioral benefit.
+select = ["E", "F", "I"]

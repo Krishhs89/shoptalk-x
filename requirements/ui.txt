@@ -1,0 +1,9 @@
+# Streamlit frontend (Day 5) -- shoptalk.ui.app
+# Deliberately standalone (not layered on the others): the UI process only
+# ever talks to the API over HTTP, so it doesn't need any model/ML deps --
+# matches docker/ui/Dockerfile's minimal image.
+streamlit==1.40.2
+requests==2.32.3
+pandas==2.2.3
+pyarrow==17.0.0
+PyYAML==6.0.2

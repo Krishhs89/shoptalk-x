@@ -1,108 +1,239 @@
 # ShopTalk-X
 
-Production multimodal shopping assistant with visual verification, built on the Amazon Berkeley Objects (ABO) dataset. Full design rationale: [docs/ShopTalk-X_Production_Design_Document.md](docs/ShopTalk-X_Production_Design_Document.md). Build schedule: [docs/ShopTalk-X_7Day_Execution_Plan.md](docs/ShopTalk-X_7Day_Execution_Plan.md).
+A production-style multimodal shopping assistant with visual order
+verification, built on the Amazon Berkeley Objects (ABO) dataset —
+conversational text/photo search over a ~10k-product catalog, plus a
+"did I get the right item?" photo-verification flow.
 
-Status: **Day 3 — multimodal: BLIP captions + CLIP image search.**
+**Start here:**
+- **What does it do?** → [docs/FUNCTIONAL_OVERVIEW.md](docs/FUNCTIONAL_OVERVIEW.md)
+- **How is it built?** → [docs/TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md)
+- **Per-model details** → [docs/model_cards/](docs/model_cards/)
+- **Original spec + design rationale** → [docs/ShopTalk-X_Production_Design_Document.md](docs/ShopTalk-X_Production_Design_Document.md)
+- **Presentation outline** → [docs/PRESENTATION_OUTLINE.md](docs/PRESENTATION_OUTLINE.md)
 
-## What's here
+Status: **all 7 build days complete** (core pipeline, RAG service, frontend,
+deployment/MLOps, docs) plus the personalization and voice-input stretch
+goals. Quantity validation (YOLO-based order-count check) was not attempted
+— see the functional overview's status table for the full breakdown of
+what's built vs. documented-only vs. not attempted, and why.
 
-### Day 1 — data + EDA + baseline retrieval
-- `src/shoptalk/data/download_abo.py` — pulls an English-language ~10k-product subset of ABO directly from its public S3 bucket (listings metadata + main product images), no AWS credentials required.
-- `src/shoptalk/data/preprocess.py` — cleans/joins listing fields into a flat product table (`data/processed/products.parquet`). Note: **ABO has no price field** — `price_usd` is a synthetic, category-band-seeded value clearly flagged with `price_is_synthetic=True`, added only so price-filter queries ("under $50") are demoable. It is never real Amazon pricing.
-- `notebooks/01_eda.ipynb` — category/brand/price distributions, missing-value analysis, description-length & vocabulary analysis, NLP preprocessing rationale, image availability, and modeling decisions the EDA drives (e.g. category imbalance → within-category hard-negative mining).
-- `src/shoptalk/embeddings/embed_text.py` — embeds each product's joined text with `BAAI/bge-base-en-v1.5`, indexes into a persistent Chroma collection.
-- `src/shoptalk/retrieval/search.py` — baseline single-stage text query → top-K ANN search over the Chroma index.
-
-### Day 2 — two-stage retrieval, golden eval set, MLflow
-- `src/shoptalk/retrieval/rerank.py` — cross-encoder (`ms-marco-MiniLM-L-6-v2`) reranker, batched.
-- `src/shoptalk/retrieval/two_stage.py` — stage-1 ANN top-100 → stage-2 cross-encoder rerank → top-K.
-- `src/shoptalk/eval/generate_golden_set.py` — generates ~100 (query → relevant products) pairs, template-based and grounded in real sampled products, stratified across categories. Filters out unclean brand/color values (leaked internal codes, mixed-script text) before using them in a query. Writes `data/eval/golden_set.jsonl` (source of truth) + `golden_set_review.csv` (for the human spot-check the spec calls for).
-- `src/shoptalk/eval/evaluate_retrieval.py` — runs the golden set through both stage-1-only and full two-stage retrieval, computes Recall@10/50/100, MRR, NDCG@10 via `ranx`, writes an uplift table to `results/day2_retrieval_eval.md`, and logs both runs to MLflow.
-- `docker-compose.yml` + `docker/mlflow/` — MLflow tracking server (`docker compose up mlflow`, UI at `localhost:5000`). Works without it too — defaults to a local `file:./mlruns` store.
-
-### Day 3 — multimodal: captions + CLIP image search
-- `src/shoptalk/data/caption_images.py` — BLIP (`blip-image-captioning-base`) batch-captions every product's main image, appends a `caption` column and folds it into the `document` field so future re-embeddings pick up visual attributes (pattern, shape, material) sellers often omit from bullet points. Uses `repetition_penalty`/`no_repeat_ngram_size` — without them BLIP occasionally degenerates into a repeated-token loop (caught this on a real image during validation).
-- `src/shoptalk/embeddings/embed_image.py` — OpenCLIP (`ViT-B-32`, LAION `laion2b_s34b_b79k`) embeds every catalog image into a **second** Chroma collection (`shoptalk_images`) — a separate embedding space from the text collection, not directly comparable.
-- `src/shoptalk/retrieval/image_search.py` — photo-as-query: CLIP-embed the uploaded photo → ANN over the image collection → **BLIP captions the query photo itself** to manufacture a pseudo-text query → reruns the exact same Day-2 cross-encoder reranker against the candidates. (The cross-encoder is text-only and a photo has no natural query to pair it with, so this reuses Day 2's reranker instead of needing a separate image-reranking model.)
-- `notebooks/02_image_search_demo.ipynb` — the Day-3 checkpoint: runs a query photo through the full pipeline and displays the query image alongside its top-K visual matches.
-
-All scripts validated end-to-end against a live sample pulled from the real ABO bucket (see commit history) — they aren't just sketches. The Day-2 validation run (300 products, 30 golden queries) showed a genuine two-stage uplift: Recall@10 +10.5%, MRR +11.3%, NDCG@10 +14.6%, with Recall@100 unchanged (~0%) as expected, since reranking only reorders the stage-1 candidate pool rather than expanding it. Day 3's image search was validated with a real product photo as the query: CLIP correctly recovered the exact source product at similarity 1.000, BLIP produced a specific, accurate pseudo-query ("a pair of brown sued shoes"), and reranking kept the true match at rank 1 with a wide score margin over visually-similar alternatives.
-
-## Setup
+## Quickstart
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt        # or requirements/<component>.txt for just one piece
+export PYTHONPATH=src
+
+# Data -> embeddings -> index (see "Full pipeline" below for every step)
+python -m shoptalk.data.download_abo
+python -m shoptalk.data.preprocess
+python -m shoptalk.data.caption_images
+python -m shoptalk.embeddings.embed_text
+python -m shoptalk.embeddings.embed_image
+
+# LLM (separate terminal): install Ollama (https://ollama.com), then
+ollama pull llama3.1:8b-instruct-q4_0
+
+# Serve
+uvicorn shoptalk.api.main:app --reload          # API on :8000, docs at :8000/docs
+streamlit run src/shoptalk/ui/app.py            # UI on :8501
+
+# ...or the whole stack in containers:
+docker compose up -d --build
 ```
 
-## Run the pipeline
+## What's built, by day
+
+### Day 1 — data + EDA + baseline retrieval
+- `shoptalk/data/download_abo.py`, `preprocess.py` — pulls an English-only
+  ABO subset directly from its public S3 bucket, cleans/joins listing
+  fields. **ABO has no price field** — `price_usd` is a synthetic,
+  category-band-seeded value, clearly flagged `price_is_synthetic=True`
+  everywhere, so "under $50"-style queries are demoable without pretending
+  it's real Amazon pricing.
+- `notebooks/01_eda.ipynb` — distributions, missing-value analysis,
+  vocabulary analysis, NLP preprocessing rationale, insights tied to
+  modeling decisions.
+- `shoptalk/embeddings/embed_text.py`, `retrieval/search.py` — bi-encoder
+  (`bge-base-en-v1.5`) embeddings + Chroma, baseline single-stage search.
+
+### Day 2 — two-stage retrieval, golden eval set, MLflow
+- `retrieval/rerank.py`, `two_stage.py` — cross-encoder
+  (`ms-marco-MiniLM-L-6-v2`) reranking on top of stage-1 ANN.
+- `eval/generate_golden_set.py`, `evaluate_retrieval.py` — auto-generated,
+  human-spot-checkable test set (`data/eval/golden_set.jsonl`); Recall/MRR/
+  NDCG harness with MLflow logging.
+- **Measured uplift** (`results/day2_retrieval_eval.md`): Recall@10 +10.5pp,
+  MRR +11.3pp, NDCG@10 +14.6pp from reranking.
+
+### Day 3 — multimodal: BLIP captions + CLIP image search
+- `data/caption_images.py` — BLIP captions folded into the embedded text.
+- `embeddings/embed_image.py`, `retrieval/image_search.py` — OpenCLIP image
+  index + photo-as-query search, reranked via a BLIP-generated pseudo-text
+  query (reuses the Day-2 reranker instead of a second model).
+- `notebooks/02_image_search_demo.ipynb` — visual walkthrough.
+
+### Day 4 — RAG + LLM + FastAPI backend
+- `rag/prompts.py`, `chain.py` — LangChain retrieval → prompt → LLM chain
+  (Ollama, `llama3.1:8b-instruct-q4_0`), with prompt-injection-resistant
+  delimiting and explicit (non-LangChain-Memory) conversation history.
+- `api/main.py` + `schemas.py`/`security.py`/`logging_store.py` — FastAPI
+  service: `/search/text`, `/search/image`, `/verify`, `/feedback`,
+  `/health`, `/metrics`; models loaded once at startup; API-key auth, rate
+  limiting, per-request SQLite prediction logging.
+
+### Day 5 — fine-tuning, verification head, frontend
+- `embeddings/finetune_text.py`, `eval_finetune.py` — triplet-loss
+  fine-tuning using same-category hard negatives mined from the golden
+  set. **Measured uplift** (`results/day5_finetune_eval.md`): Recall@10
+  0.897 → 0.959.
+- `verification/*` — Siamese pairs from ABO multi-view images + hard
+  negatives, small MLP head, match/mismatch/**suspect** (human-review band)
+  verdicts. **Measured** (`results/day5_verification_eval.md`): ROC-AUC
+  0.926, FAR 0.048, FRR 0.200 (smoke-test scale).
+- `ui/app.py` — Streamlit frontend: chat search (text/photo/voice),
+  conversation history, thumbs feedback, a separate order-verification tab.
+
+### Day 6 — deployment + monitoring + MLOps
+- `Dockerfile`, `docker/ui/`, `docker-compose.yml` — full local stack
+  (Ollama + API + UI + MLflow).
+- `.github/workflows/ci.yml` — lint (`ruff`) → test (`pytest`, 29 tests) →
+  build/push to ECR → deploy to EC2, with cloud stages that skip cleanly
+  (not fail) when credentials aren't configured.
+- `docs/deployment/aws_ec2.md` — full EC2 deployment guide, documented but
+  not executed (an AI agent shouldn't provision billable cloud infra
+  unattended — see the doc for why).
+- `loadtest/locustfile.py`, `monitoring/drift_report.py` — Locust load
+  testing; Evidently drift detection, validated to actually detect a
+  simulated distribution shift (`results/day6_drift_report.md`).
+- `airflow/dags/retrain_embeddings_dag.py` + `docker-compose.airflow.yml` —
+  retraining DAG (pull data → rebuild triplets → fine-tune → evaluate →
+  promote-if-better → trigger deploy); its MLflow promotion logic was
+  validated directly against real trained models.
+
+### Day 7 — docs, model cards, LoRA/QLoRA code
+- `requirements/*.txt` — per-component dependency files (data, embeddings,
+  eval, serving, ui, monitoring, voice, dev, llm_finetune), plus the
+  aggregate root `requirements.txt`.
+- `docs/model_cards/` — intended use, training data, eval results,
+  limitations per model (embedding, reranker, CLIP/BLIP, LLM, verification).
+- `llm_finetune/prepare_dataset.py`, `train_lora.py` — LoRA/QLoRA
+  instruction fine-tuning; dataset generation **was run for real** against
+  the live pipeline, the GPU training step is documented-not-executed per
+  the problem statement's explicit allowance (see
+  `docs/finetuning/llm_lora_qlora.md`).
+
+### Stretch goals
+- **Personalization** (`personalization/*`) — synthetic user interaction
+  history, decayed profile vectors, rerank blend
+  (`α·cross-encoder + β·profile-cosine`). Validated end-to-end with a
+  measured hit-rate uplift (`results/stretch_personalization_eval.md`).
+- **Voice input** (`voice/transcribe.py`) — faster-whisper STT wired into
+  the UI's chat tab. Validated with a real generated speech clip
+  transcribed correctly end-to-end.
+- **Not attempted:** quantity validation (YOLO-based per-line-item order
+  count check) — the largest remaining stretch item; needs an
+  object-detection annotation pipeline beyond this build's scope.
+
+## Full pipeline (every command, in order)
 
 ```bash
 export PYTHONPATH=src
 
-# 1. Download ~10k English-language products + main images (~10-20 min depending on network)
-python -m shoptalk.data.download_abo
-#   smoke test first if you want: python -m shoptalk.data.download_abo --limit 200
-
-# 2. Clean/join fields into data/processed/products.parquet + .csv
+# --- Day 1: data ---
+python -m shoptalk.data.download_abo              # ~10-20 min
 python -m shoptalk.data.preprocess
+# open notebooks/01_eda.ipynb and run all cells
 
-# 3. Open notebooks/01_eda.ipynb and run all cells (jupyter notebook / jupyter lab)
-
-# 4. Embed + index (GPU recommended but CPU/MPS works for this subset size)
-python -m shoptalk.embeddings.embed_text
-
-# 5. Baseline (stage-1-only) query
-python -m shoptalk.retrieval.search --query "red shirt for men under 50 dollars" --top-k 10
-
-# 6. Two-stage query (stage-1 ANN -> cross-encoder rerank)
-python -m shoptalk.retrieval.two_stage --query "red shirt for men under 50 dollars" --top-k 10
-
-# 7. Generate + spot-check the golden eval set
-python -m shoptalk.eval.generate_golden_set
-#   -> open data/eval/golden_set_review.csv, sanity-check a sample of
-#      queries/positives, hand-edit data/eval/golden_set.jsonl if anything
-#      looks wrong, then treat it as frozen ground truth
-
-# 8. (optional) start MLflow's tracking server + UI
-docker compose up -d mlflow   # UI at http://localhost:5000
-
-# 9. Evaluate stage-1 vs two-stage on the golden set, log both runs to MLflow
-python -m shoptalk.eval.evaluate_retrieval
-
-# 10. BLIP-caption every product image, fold captions into the document field
+# --- Day 3: captions (before first embed, so captions get indexed) ---
 python -m shoptalk.data.caption_images
 
-# 11. Re-embed text (now caption-augmented) and CLIP-embed catalog images
-python -m shoptalk.embeddings.embed_text     # overwrites the text collection with captioned documents
-python -m shoptalk.embeddings.embed_image    # builds the separate image collection
+# --- Day 1/3: embeddings + indexes ---
+python -m shoptalk.embeddings.embed_text
+python -m shoptalk.embeddings.embed_image
 
-# 12. Photo-as-query search
-python -m shoptalk.retrieval.image_search --image path/to/photo.jpg --top-k 10
-#   or open notebooks/02_image_search_demo.ipynb for the visual walkthrough
+# --- Day 2: two-stage retrieval + eval ---
+python -m shoptalk.retrieval.two_stage --query "red shirt for men under 50 dollars"
+python -m shoptalk.eval.generate_golden_set
+#   -> spot-check data/eval/golden_set_review.csv, hand-edit the .jsonl if needed
+docker compose up -d mlflow                        # optional, UI at :5000
+python -m shoptalk.eval.evaluate_retrieval
+
+# --- Day 3: photo search ---
+python -m shoptalk.retrieval.image_search --image path/to/photo.jpg
+
+# --- Day 5: fine-tuning + verification ---
+python -m shoptalk.embeddings.finetune_text
+python -m shoptalk.embeddings.eval_finetune --finetuned-path data/models/bge-finetuned
+python -m shoptalk.verification.build_pairs
+python -m shoptalk.verification.train_verification
+
+# --- Day 4: LLM + API (separate terminal for Ollama) ---
+ollama serve &
+ollama pull llama3.1:8b-instruct-q4_0
+uvicorn shoptalk.api.main:app --reload              # :8000, Swagger at /docs
+python -m shoptalk.rag.chain --query "..." --stream
+
+# --- Day 5: UI ---
+streamlit run src/shoptalk/ui/app.py                # :8501
+
+# --- Day 6: load test + drift + retraining DAG ---
+locust -f src/shoptalk/loadtest/locustfile.py --host http://localhost:8000 \
+  --users 10 --spawn-rate 2 --run-time 5m --headless --csv results/locust
+python -m shoptalk.monitoring.drift_report
+docker compose -f docker-compose.airflow.yml up --build   # :8080
+
+# --- Stretch: personalization + voice ---
+python -m shoptalk.personalization.simulate_interactions
+python -m shoptalk.personalization.evaluate_personalization
+python -m shoptalk.voice.transcribe --audio path/to/clip.wav
+
+# --- Day 7: LLM instruction dataset (LoRA training itself needs a GPU) ---
+python -m shoptalk.llm_finetune.prepare_dataset --n 20
 ```
 
-Config (dataset size, model names, rerank/eval/mlflow settings, paths) lives in `configs/config.yaml`.
+Config (dataset size, all model names/params, paths) lives entirely in
+`configs/config.yaml`.
 
 ## Project layout
 
 ```
-configs/            pipeline configuration
-data/raw/            downloaded ABO listings + images (gitignored)
-data/processed/       cleaned product table (gitignored)
-data/chroma/          vector index (gitignored)
-data/eval/           golden eval set (committed -- required submission artifact)
-results/             evaluation output tables (committed)
-docker/mlflow/        MLflow tracking server image
-src/shoptalk/data/     download + preprocessing
-src/shoptalk/embeddings/  embedding generation
-src/shoptalk/retrieval/   stage-1 search, cross-encoder rerank, two-stage pipeline
-src/shoptalk/eval/       golden set generation, retrieval evaluation
-notebooks/           EDA and experimentation notebooks
-docs/                problem statement, design doc, execution plan, session log
+configs/                pipeline configuration (single source of truth)
+data/raw/, processed/     downloaded + cleaned catalog (gitignored)
+data/chroma/               vector indexes (gitignored)
+data/eval/                golden eval set (committed -- required deliverable)
+data/verification/         trained MLP head (committed) + pairs (gitignored)
+results/                  evaluation output tables (committed)
+requirements/             per-component dependency files
+src/shoptalk/
+  data/                    download + preprocessing + captioning
+  embeddings/              text/image embedding, fine-tuning, eval
+  retrieval/               stage-1 search, rerank, two-stage, image search
+  eval/                    golden set generation, retrieval evaluation
+  rag/                     LangChain RAG chain + prompts
+  api/                     FastAPI service
+  ui/                      Streamlit frontend
+  verification/            visual order verification
+  personalization/         stretch: rerank personalization
+  voice/                   stretch: Whisper STT
+  llm_finetune/             LoRA/QLoRA dataset + training code
+  monitoring/               Evidently drift report
+  loadtest/                 Locust load test
+notebooks/               EDA + image search demo
+docs/                    all documentation (see top of this file)
+docs/model_cards/         per-model cards
+docs/deployment/           AWS EC2 guide
+docs/finetuning/            LoRA/QLoRA guide
+airflow/dags/             retraining DAG
+tests/                   pytest unit tests (29, run in CI)
+.github/workflows/         CI/CD
 ```
 
-## Roadmap
+## Testing
 
-See [docs/ShopTalk-X_7Day_Execution_Plan.md](docs/ShopTalk-X_7Day_Execution_Plan.md) for Day 4 (RAG + LLM + FastAPI service) through Day 7 (docs, video, stretch goals).
+```bash
+pip install -r requirements/dev.txt
+ruff check src/ tests/
+PYTHONPATH=src pytest tests/ -v
+```

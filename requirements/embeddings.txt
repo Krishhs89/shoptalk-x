@@ -1,0 +1,10 @@
+# Embeddings, vector DB, multimodal, fine-tuning (Days 1, 3, 5) --
+# shoptalk.embeddings.*, shoptalk.data.caption_images
+-r data.txt
+sentence-transformers==3.3.1
+chromadb==0.5.23
+transformers==4.46.3
+open_clip_torch==2.29.0
+Pillow==11.0.0
+datasets==3.1.0
+accelerate==1.1.1

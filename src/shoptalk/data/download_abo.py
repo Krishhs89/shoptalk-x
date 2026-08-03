@@ -16,7 +16,6 @@ Usage:
 import argparse
 import csv
 import gzip
-import io
 import json
 import random
 import sys
@@ -141,8 +140,7 @@ def main():
     manifest_path = raw_dir / "listings" / "selected_products.jsonl"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     with open(manifest_path, "w") as f:
-        for p in products:
-            f.write(json.dumps(p) + "\n")
+        f.writelines(json.dumps(p) + "\n" for p in products)
     print(f"  wrote manifest -> {manifest_path}")
 
     if args.skip_images:

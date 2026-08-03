@@ -1,5 +1,7 @@
 """Loads configs/config.yaml into a plain dict."""
+import os
 from pathlib import Path
+
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -18,4 +20,14 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> dict:
     if "eval" in cfg:
         cfg["eval"]["golden_set_path"] = str(REPO_ROOT / cfg["eval"]["golden_set_path"])
         cfg["eval"]["results_dir"] = str(REPO_ROOT / cfg["eval"]["results_dir"])
+    if "llm" in cfg:
+        cfg["llm"]["base_url"] = os.environ.get("OLLAMA_BASE_URL", cfg["llm"]["base_url"])
+        cfg["llm"]["model"] = os.environ.get("OLLAMA_MODEL", cfg["llm"]["model"])
+    if "verification" in cfg:
+        cfg["verification"]["pairs_path"] = str(REPO_ROOT / cfg["verification"]["pairs_path"])
+        cfg["verification"]["model_path"] = str(REPO_ROOT / cfg["verification"]["model_path"])
+    if "personalization" in cfg:
+        cfg["personalization"]["interactions_path"] = str(
+            REPO_ROOT / cfg["personalization"]["interactions_path"]
+        )
     return cfg

@@ -48,3 +48,37 @@ eval:
 mlflow:
   tracking_uri: "file:./mlruns"   # override with MLFLOW_TRACKING_URI, e.g. http://localhost:5000 (docker-compose)
   experiment_name: "shoptalk-x-retrieval"
+
+llm:
+  provider: "ollama"
+  model: "llama3.1:8b-instruct-q4_0"
+  base_url: "http://localhost:11434"   # override with OLLAMA_BASE_URL (e.g. http://ollama:11434 in docker-compose)
+  temperature: 0.2
+  num_predict: 400          # max generated tokens
+  conversation_max_turns: 6  # prior (user, assistant) turns kept in the prompt
+  context_products: 8        # how many reranked hits get passed to the LLM as context
+
+verification:
+  embedding_model: "BAAI/bge-base-en-v1.5"   # reuse the text encoder's image-agnostic... see verification/README note
+  clip_model_name: "ViT-B-32"
+  clip_pretrained: "laion2b_s34b_b79k"
+  pairs_path: "data/verification/pairs.jsonl"
+  model_path: "data/verification/mlp_head.pt"
+  device: "auto"
+  threshold: 0.5             # decision boundary tuned in train_verification.py, stored alongside the model
+  hidden_dim: 128
+  epochs: 15
+  lr: 0.001
+  batch_size: 32
+  seed: 42
+
+personalization:
+  interactions_path: "data/personalization/interactions.jsonl"
+  num_synthetic_users: 50
+  decay: 0.7                 # per-interaction recency decay for the user profile vector
+  alpha: 0.7                 # final_score = alpha * cross-encoder + beta * profile-cosine
+  beta: 0.3
+
+voice:
+  stt_model: "base"          # faster-whisper model size
+  device: "auto"

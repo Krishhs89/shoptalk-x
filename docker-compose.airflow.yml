@@ -1,0 +1,33 @@
+# Local Airflow demo for the retraining DAG (design doc §7.3, simplified per
+# the execution plan to a single DAG run standalone -- not a production
+# multi-node Airflow deployment).
+#
+# Usage:
+#   docker compose -f docker-compose.airflow.yml up --build
+#   open http://localhost:8080 (user: airflow, printed to logs on first boot)
+#   trigger `shoptalk_x_retrain_embeddings` from the UI, or:
+#   docker compose -f docker-compose.airflow.yml exec airflow \
+#     airflow dags trigger shoptalk_x_retrain_embeddings
+#
+# `airflow standalone` bundles the scheduler + webserver + a SQLite metadata
+# db (SequentialExecutor) in one process -- the right amount of
+# infrastructure for demoing one linear DAG locally; a real deployment would
+# use LocalExecutor/CeleryExecutor + Postgres instead.
+services:
+  airflow:
+    build:
+      context: .
+      dockerfile: docker/airflow/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./data:/opt/shoptalk/data
+      - airflow-metadata:/opt/airflow
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      MLFLOW_TRACKING_URI: "http://host.docker.internal:5000"
+    command: standalone
+
+volumes:
+  airflow-metadata:

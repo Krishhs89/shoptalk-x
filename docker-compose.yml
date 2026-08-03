@@ -1,6 +1,58 @@
-# ShopTalk-X local dev services. Currently: MLflow tracking server (Day 2).
-# Later days add: chroma, ollama, api (see execution plan).
+# ShopTalk-X full local stack: LLM server, API, UI, experiment tracking.
+#
+# First-time setup (data/models must exist before `api` will serve real
+# results -- see README's "Run the pipeline" section):
+#   docker compose up -d ollama
+#   docker compose exec ollama ollama pull llama3.1:8b-instruct-q4_0
+#   docker compose up -d --build api ui mlflow
+#
+# GPU passthrough for `ollama` is commented out below -- uncomment the
+# `deploy` block on a machine with an NVIDIA GPU + nvidia-container-toolkit
+# (e.g. the EC2 G4dn.xlarge target in the design doc). Apple Silicon Macs
+# should run `ollama serve` natively instead (Docker Desktop can't pass
+# through Metal), pointing OLLAMA_BASE_URL at the host.
 services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      SHOPTALK_API_KEY: "${SHOPTALK_API_KEY:-}"
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ui:
+    build: ./docker/ui
+    ports:
+      - "8501:8501"
+    environment:
+      SHOPTALK_API_URL: "http://api:8000"
+      SHOPTALK_API_KEY: "${SHOPTALK_API_KEY:-}"
+    volumes:
+      - ./data/processed:/app/data/processed:ro   # optional: item picker in the verify tab
+    depends_on:
+      - api
+    restart: unless-stopped
+
   mlflow:
     build: ./docker/mlflow
     ports:
@@ -8,3 +60,6 @@ services:
     volumes:
       - ./mlflow-data:/mlflow-data
     restart: unless-stopped
+
+volumes:
+  ollama-models:

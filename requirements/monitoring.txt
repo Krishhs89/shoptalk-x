@@ -1,0 +1,4 @@
+# Load testing + drift monitoring (Day 6) -- shoptalk.loadtest.*, shoptalk.monitoring.*
+-r eval.txt
+locust==2.32.4
+evidently==0.4.40

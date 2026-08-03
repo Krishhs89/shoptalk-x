@@ -1,0 +1,6 @@
+# Data download + preprocessing (Day 1) -- shoptalk.data.*
+requests==2.32.3
+pandas==2.2.3
+tqdm==4.67.1
+pyarrow==17.0.0
+PyYAML==6.0.2

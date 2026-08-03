@@ -9,6 +9,9 @@ __pycache__/
 data/raw/*
 data/processed/*
 data/chroma/
+data/logs/
+data/personalization/*.jsonl
+data/verification/pairs.jsonl
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
@@ -18,16 +21,22 @@ data/chroma/
 # Models / experiment tracking
 mlruns/
 mlflow-data/
-*.pt
+data/models/            # full fine-tuned embedding checkpoint (~440MB) -- too large for git;
+                         # export to MLflow registry / HF Hub instead (see README)
 *.bin
 *.gguf
 
-# data/eval/ (golden set) and results/ ARE committed -- required submission
-# deliverables (test dataset + evaluation results), not regenerable junk.
+# data/eval/ (golden set), results/, and data/verification/mlp_head.pt ARE
+# committed -- required submission deliverables (test dataset, evaluation
+# results, the small trained verification head), not regenerable junk.
 
 # Env / secrets
 .env
 *.pem
+
+# Safety net -- this folder has picked up unrelated personal files (e.g. a
+# credentials doc) during dev; never let *.docx get staged by accident.
+*.docx
 
 # OS
 .DS_Store

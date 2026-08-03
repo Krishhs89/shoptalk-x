@@ -1,0 +1,7 @@
+# Evaluation + experiment tracking (Day 2, 5) -- shoptalk.eval.*,
+# shoptalk.embeddings.eval_finetune, shoptalk.verification.train_verification
+-r embeddings.txt
+ranx==0.3.20
+mlflow==2.18.0
+tabulate==0.9.0
+scikit-learn==1.5.2

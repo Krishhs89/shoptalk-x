@@ -76,7 +76,8 @@ def make_query(row: pd.Series, rng: random.Random) -> tuple:
         templates.append(("brand", f"{brand} {category}", {"brand": brand}))
     if color:
         templates.append(("color", f"{color} {category}", {"color": color}))
-    templates.append(("price", f"{category} under ${price_threshold(price)}", {"price_ceiling": price_threshold(price)}))
+    ceiling = price_threshold(price)
+    templates.append(("price", f"{category} under ${ceiling}", {"price_ceiling": ceiling}))
     templates.append(("plain", f"{category}", {}))
     if brand and color:
         templates.append(
@@ -168,8 +169,7 @@ def main():
 
     golden_path.parent.mkdir(parents=True, exist_ok=True)
     with open(golden_path, "w") as f:
-        for row in rows:
-            f.write(json.dumps(row) + "\n")
+        f.writelines(json.dumps(row) + "\n" for row in rows)
 
     review_csv = golden_path.parent / "golden_set_review.csv"
     review_df = pd.DataFrame(rows)
