@@ -1,0 +1,19 @@
+# ShopTalk-X — core requirements (Day 1-2: data, EDA, embeddings, retrieval)
+# Additional requirements.txt files will be added per-component (llm/, serving/, etc.)
+# as later days introduce them, per the submission checklist.
+
+# Data + preprocessing
+requests==2.32.3
+pandas==2.2.3
+tqdm==4.67.1
+pyarrow==17.0.0
+PyYAML==6.0.2
+
+# EDA / notebooks
+jupyter==1.1.1
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# Embeddings + vector DB + retrieval
+sentence-transformers==3.3.1
+chromadb==0.5.23

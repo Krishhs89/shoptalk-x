@@ -1,0 +1,22 @@
+# ShopTalk-X pipeline configuration
+
+data:
+  base_url: "https://amazon-berkeley-objects.s3.amazonaws.com"
+  listings_shards: ["listings_0.json.gz", "listings_1.json.gz"]   # ~9.2k products/shard, ~7.7k English each; 2 shards -> sample down to target_product_count
+  images_metadata: "images/metadata/images.csv.gz"
+  images_prefix: "images/small"             # 256px catalog images
+  language_tag: "en_US"                     # ABO listings are multilingual; we standardize on English
+  target_product_count: 10000
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  seed: 42
+
+embeddings:
+  text_model: "BAAI/bge-base-en-v1.5"
+  batch_size: 64
+  device: "auto"        # "cuda" | "mps" | "cpu" | "auto"
+  chroma_dir: "data/chroma"
+  collection_name: "shoptalk_products"
+
+retrieval:
+  top_k: 10

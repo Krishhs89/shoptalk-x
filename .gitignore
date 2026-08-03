@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv_smoketest/
+*.egg-info/
+
+# Data (downloaded/generated, not committed)
+data/raw/*
+data/processed/*
+data/chroma/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Models / experiment tracking
+mlruns/
+*.pt
+*.bin
+*.gguf
+
+# Env / secrets
+.env
+*.pem
+
+# OS
+.DS_Store
