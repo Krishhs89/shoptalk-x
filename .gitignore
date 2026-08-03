@@ -17,9 +17,13 @@ data/chroma/
 
 # Models / experiment tracking
 mlruns/
+mlflow-data/
 *.pt
 *.bin
 *.gguf
+
+# data/eval/ (golden set) and results/ ARE committed -- required submission
+# deliverables (test dataset + evaluation results), not regenerable junk.
 
 # Env / secrets
 .env

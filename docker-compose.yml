@@ -1,0 +1,10 @@
+# ShopTalk-X local dev services. Currently: MLflow tracking server (Day 2).
+# Later days add: chroma, ollama, api (see execution plan).
+services:
+  mlflow:
+    build: ./docker/mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow-data:/mlflow-data
+    restart: unless-stopped

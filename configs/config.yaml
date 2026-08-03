@@ -20,3 +20,16 @@ embeddings:
 
 retrieval:
   top_k: 10
+  stage1_k: 100          # ANN candidates handed to the reranker
+  rerank_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  rerank_batch_size: 64
+
+eval:
+  golden_set_path: "data/eval/golden_set.jsonl"
+  golden_set_size: 100
+  seed: 42
+  results_dir: "results"
+
+mlflow:
+  tracking_uri: "file:./mlruns"   # override with MLFLOW_TRACKING_URI, e.g. http://localhost:5000 (docker-compose)
+  experiment_name: "shoptalk-x-retrieval"
