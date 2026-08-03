@@ -22,3 +22,8 @@ chromadb==0.5.23
 ranx==0.3.20
 mlflow==2.18.0
 tabulate==0.9.0
+
+# Multimodal: captioning + CLIP image search (Day 3)
+transformers==4.46.3
+open_clip_torch==2.29.0
+Pillow==11.0.0

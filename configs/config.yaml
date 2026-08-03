@@ -18,11 +18,26 @@ embeddings:
   chroma_dir: "data/chroma"
   collection_name: "shoptalk_products"
 
+captioning:
+  model: "Salesforce/blip-image-captioning-base"
+  batch_size: 16
+  device: "auto"
+  max_new_tokens: 30
+
+clip:
+  model_name: "ViT-B-32"
+  pretrained: "laion2b_s34b_b79k"    # OpenCLIP (LAION), per design doc §12.1
+  batch_size: 32
+  device: "auto"
+  chroma_dir: "data/chroma"
+  collection_name: "shoptalk_images"
+
 retrieval:
   top_k: 10
   stage1_k: 100          # ANN candidates handed to the reranker
   rerank_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
   rerank_batch_size: 64
+  image_stage1_k: 50     # CLIP-ANN candidates handed to the image-query reranker
 
 eval:
   golden_set_path: "data/eval/golden_set.jsonl"

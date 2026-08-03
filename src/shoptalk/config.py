@@ -13,6 +13,8 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> dict:
     cfg["data"]["raw_dir"] = str(REPO_ROOT / cfg["data"]["raw_dir"])
     cfg["data"]["processed_dir"] = str(REPO_ROOT / cfg["data"]["processed_dir"])
     cfg["embeddings"]["chroma_dir"] = str(REPO_ROOT / cfg["embeddings"]["chroma_dir"])
+    if "clip" in cfg:
+        cfg["clip"]["chroma_dir"] = str(REPO_ROOT / cfg["clip"]["chroma_dir"])
     if "eval" in cfg:
         cfg["eval"]["golden_set_path"] = str(REPO_ROOT / cfg["eval"]["golden_set_path"])
         cfg["eval"]["results_dir"] = str(REPO_ROOT / cfg["eval"]["results_dir"])
