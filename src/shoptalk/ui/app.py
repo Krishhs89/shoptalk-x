@@ -15,6 +15,12 @@ import streamlit as st
 
 API_BASE_URL = os.environ.get("SHOPTALK_API_URL", "http://localhost:8000")
 API_KEY = os.environ.get("SHOPTALK_API_KEY")
+# LLM generation is the dominant cost of a search request and varies wildly
+# by hardware -- seconds on GPU, tens of minutes on CPU-only (see
+# results/day6_latency_report.md: 16.8 min for one request on a CPU-only
+# Mac). A short fixed timeout here would abort perfectly good in-flight
+# requests, so this defaults generously and is tunable via env var.
+SEARCH_TIMEOUT_S = int(os.environ.get("SHOPTALK_SEARCH_TIMEOUT_S", "1800"))
 
 
 def _headers():
@@ -134,20 +140,24 @@ def chat_search_tab():
         st.markdown(query)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching the catalog..."):
+        spinner_msg = (
+            "Searching the catalog... (the LLM step can take a while on "
+            "CPU-only hardware -- see docs/USAGE_WALKTHROUGH.md)"
+        )
+        with st.spinner(spinner_msg):
             try:
                 if uploaded_image is not None:
                     files = {"file": (uploaded_image.name, uploaded_image.getvalue(), uploaded_image.type)}
                     params = {"session_id": st.session_state.session_id} if st.session_state.session_id else {}
                     resp = requests.post(
                         f"{API_BASE_URL}/search/image", files=files, params=params,
-                        headers=_headers(), timeout=60,
+                        headers=_headers(), timeout=SEARCH_TIMEOUT_S,
                     )
                 else:
                     resp = requests.post(
                         f"{API_BASE_URL}/search/text",
                         json={"query": query, "session_id": st.session_state.session_id, "stream": False},
-                        headers=_headers(), timeout=60,
+                        headers=_headers(), timeout=SEARCH_TIMEOUT_S,
                     )
                 resp.raise_for_status()
                 data = resp.json()

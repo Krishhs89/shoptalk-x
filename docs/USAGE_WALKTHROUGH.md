@@ -40,6 +40,13 @@ model. **Use the Verify tab and the API docs for a fast, live demo right
 now; a chat-search turn with the full model takes roughly 15-20 minutes on
 this machine until it's moved to GPU hardware.**
 
+The UI's own request timeout is set generously (`SHOPTALK_SEARCH_TIMEOUT_S`,
+default 1800s = 30 min) specifically so it doesn't abort a slow-but-working
+CPU-only LLM call with a `Read timed out` error -- if you push generation
+past 30 minutes (e.g. a much bigger prompt or an even slower machine), raise
+that env var before starting the UI: `SHOPTALK_SEARCH_TIMEOUT_S=3600
+streamlit run src/shoptalk/ui/app.py`.
+
 ## Bringing it up yourself (if it's not already running)
 
 ```bash
