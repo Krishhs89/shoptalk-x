@@ -7,14 +7,41 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from shoptalk.api.schemas import FeedbackRequest, TextSearchRequest, VerifyResponse
+from shoptalk.api.schemas import (
+    ConversationDetailResponse,
+    ConversationListResponse,
+    ConversationSummary,
+    FeedbackRequest,
+    TextSearchRequest,
+    VerifyResponse,
+)
 
 
 def test_text_search_request_defaults():
     req = TextSearchRequest(query="red shirt")
     assert req.session_id is None
+    assert req.user_name is None
     assert req.top_k is None
     assert req.stream is False
+
+
+def test_conversation_list_response_roundtrip():
+    resp = ConversationListResponse(
+        conversations=[
+            ConversationSummary(session_id="s1", preview="red shoes", updated_at=123.0, turn_count=2)
+        ]
+    )
+    assert resp.conversations[0].session_id == "s1"
+
+
+def test_conversation_detail_response_roundtrip():
+    resp = ConversationDetailResponse(
+        session_id="s1",
+        user_name="krishna",
+        history=[{"role": "user", "content": "hi"}],
+        updated_at=123.0,
+    )
+    assert resp.history[0].role == "user"
 
 
 def test_feedback_request_optional_comment():

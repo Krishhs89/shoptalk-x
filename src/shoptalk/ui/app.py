@@ -108,6 +108,39 @@ def send_feedback(request_id: str, rating: int):
         st.toast(f"Feedback failed to send: {e}")
 
 
+@st.cache_data(ttl=15)
+def fetch_conversation_list(user_name: str):
+    """Cached briefly (15s) so the sidebar doesn't hit the API on every
+    Streamlit rerun (which happens after every widget interaction), while
+    still picking up new conversations soon after they're created."""
+    try:
+        resp = requests.get(
+            f"{API_BASE_URL}/conversations", params={"user_name": user_name}, headers=_headers(), timeout=5
+        )
+        return resp.json()["conversations"] if resp.ok else []
+    except requests.RequestException:
+        return []
+
+
+def fetch_conversation_detail(session_id: str):
+    try:
+        resp = requests.get(f"{API_BASE_URL}/conversations/{session_id}", headers=_headers(), timeout=5)
+        return resp.json() if resp.ok else None
+    except requests.RequestException:
+        return None
+
+
+def _resume_conversation(session_id: str):
+    detail = fetch_conversation_detail(session_id)
+    if detail is None:
+        st.toast("Couldn't load that conversation.")
+        return
+    st.session_state.history = [{"role": t["role"], "content": t["content"]} for t in detail["history"]]
+    st.session_state.session_id = detail["session_id"]
+    st.session_state.uploader_key = st.session_state.get("uploader_key", 0) + 1
+    st.rerun()
+
+
 def chat_search_tab():
     if "history" not in st.session_state:
         st.session_state.history = []  # list of {"role", "content", "hits"?, "request_id"?}
@@ -173,9 +206,12 @@ def chat_search_tab():
         )
         with st.spinner(spinner_msg):
             try:
+                user_name = st.session_state.get("user_name", "").strip() or None
                 if uploaded_image is not None:
                     files = {"file": (uploaded_image.name, uploaded_image.getvalue(), uploaded_image.type)}
                     params = {"session_id": st.session_state.session_id} if st.session_state.session_id else {}
+                    if user_name:
+                        params["user_name"] = user_name
                     resp = requests.post(
                         f"{API_BASE_URL}/search/image", files=files, params=params,
                         headers=_headers(), timeout=SEARCH_TIMEOUT_S,
@@ -183,7 +219,12 @@ def chat_search_tab():
                 else:
                     resp = requests.post(
                         f"{API_BASE_URL}/search/text",
-                        json={"query": query, "session_id": st.session_state.session_id, "stream": False},
+                        json={
+                            "query": query,
+                            "session_id": st.session_state.session_id,
+                            "user_name": user_name,
+                            "stream": False,
+                        },
                         headers=_headers(), timeout=SEARCH_TIMEOUT_S,
                     )
                 resp.raise_for_status()
@@ -205,6 +246,7 @@ def chat_search_tab():
         {"role": "assistant", "content": data["answer"], "hits": data["hits"], "request_id": data["request_id"]}
     )
     st.session_state.uploader_key += 1  # reset photo/voice widgets so the next turn starts clean
+    fetch_conversation_list.clear()  # this turn just changed the sidebar list -- don't wait out the ttl
     st.rerun()
 
 
@@ -257,11 +299,34 @@ def main():
             st.json(health["models_loaded"])
         else:
             st.error("API unreachable -- start the FastAPI service first")
+
+        st.divider()
+        st.session_state.user_name = st.text_input(
+            "Your name", value=st.session_state.get("user_name", ""),
+            placeholder="e.g. krishna",
+            help="Used to save and look up your past conversations -- not an account, just a label.",
+        )
+
         if st.button("New conversation"):
             st.session_state.history = []
             st.session_state.session_id = None
             st.session_state.uploader_key = st.session_state.get("uploader_key", 0) + 1
             st.rerun()
+
+        st.divider()
+        st.markdown("**Your past conversations**")
+        user_name = st.session_state.user_name.strip()
+        if not user_name:
+            st.caption("Enter your name above to see and resume past conversations.")
+        else:
+            conversations = fetch_conversation_list(user_name)
+            if not conversations:
+                st.caption("No past conversations yet -- start one below.")
+            for convo in conversations:
+                is_current = convo["session_id"] == st.session_state.get("session_id")
+                label = f"{'▶ ' if is_current else ''}{convo['preview']} ({convo['turn_count']} turns)"
+                if st.button(label, key=f"resume_{convo['session_id']}", disabled=is_current, use_container_width=True):
+                    _resume_conversation(convo["session_id"])
 
     tab1, tab2 = st.tabs(["Chat search", "Verify order"])
     with tab1:

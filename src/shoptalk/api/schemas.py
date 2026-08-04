@@ -25,6 +25,7 @@ class LatencyBreakdown(BaseModel):
 class TextSearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     session_id: Optional[str] = Field(None, description="reused across turns for follow-up support")
+    user_name: Optional[str] = Field(None, description="associates this conversation with a user for history/resume")
     top_k: Optional[int] = Field(None, ge=1, le=50)
     stream: bool = False
 
@@ -62,3 +63,26 @@ class FeedbackRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     models_loaded: dict
+
+
+class ConversationSummary(BaseModel):
+    session_id: str
+    preview: str
+    updated_at: float
+    turn_count: int
+
+
+class ConversationListResponse(BaseModel):
+    conversations: list[ConversationSummary]
+
+
+class ConversationTurn(BaseModel):
+    role: str
+    content: str
+
+
+class ConversationDetailResponse(BaseModel):
+    session_id: str
+    user_name: str
+    history: list[ConversationTurn]
+    updated_at: float

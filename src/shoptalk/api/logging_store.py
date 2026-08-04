@@ -37,7 +37,21 @@ CREATE TABLE IF NOT EXISTS feedback (
     comment TEXT,
     FOREIGN KEY (request_id) REFERENCES predictions(request_id)
 );
+CREATE TABLE IF NOT EXISTS conversations (
+    session_id TEXT PRIMARY KEY,
+    user_name TEXT NOT NULL,
+    history_json TEXT NOT NULL,   -- JSON list of {role, content}
+    created_at REAL NOT NULL,
+    updated_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_name, updated_at);
 """
+
+# Hard cap on stored turns per conversation -- the LLM prompt only ever uses
+# the last `llm.conversation_max_turns` (default 6) anyway, so there's no
+# quality reason to keep more; this just bounds worst-case storage growth
+# for one runaway session.
+MAX_STORED_TURNS = 200
 
 
 def _connect() -> sqlite3.Connection:
@@ -93,3 +107,63 @@ def log_feedback(request_id: str, rating: int, comment: str = None) -> None:
             (request_id, time.time(), rating, comment),
         )
     conn.close()
+
+
+def save_conversation(session_id: str, user_name: str, history: list) -> None:
+    """Persists the full turn history for a conversation. Called after every
+    turn (not just on session end) so a mid-conversation API restart never
+    loses more than the single in-flight request. SQLite read/write of a
+    small JSON blob is milliseconds -- negligible next to the LLM step it
+    sits next to (seconds to minutes)."""
+    bounded = history[-MAX_STORED_TURNS:]
+    now = time.time()
+    conn = _connect()
+    with conn:
+        conn.execute(
+            """INSERT INTO conversations (session_id, user_name, history_json, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(session_id) DO UPDATE SET
+                 history_json = excluded.history_json,
+                 updated_at = excluded.updated_at""",
+            (session_id, user_name, json.dumps(bounded), now, now),
+        )
+    conn.close()
+
+
+def load_conversation(session_id: str) -> dict:
+    """Returns {"user_name", "history", "updated_at"} or None if unknown --
+    used both to resume the backend's context after a restart and to hydrate
+    the UI when a user picks a past conversation from their list."""
+    conn = _connect()
+    row = conn.execute(
+        "SELECT user_name, history_json, updated_at FROM conversations WHERE session_id = ?", (session_id,)
+    ).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return {"user_name": row[0], "history": json.loads(row[1]), "updated_at": row[2]}
+
+
+def list_conversations(user_name: str, limit: int = 20) -> list:
+    """Lightweight list for a sidebar: session_id + a short preview + when it
+    was last active + how many turns -- NOT the full history (that's a
+    separate load_conversation call, only made when the user actually picks
+    one, to avoid pulling every past conversation's full text just to render
+    a list)."""
+    conn = _connect()
+    rows = conn.execute(
+        """SELECT session_id, history_json, updated_at FROM conversations
+           WHERE user_name = ? ORDER BY updated_at DESC LIMIT ?""",
+        (user_name, limit),
+    ).fetchall()
+    conn.close()
+
+    results = []
+    for session_id, history_json, updated_at in rows:
+        history = json.loads(history_json)
+        first_user_turn = next((t["content"] for t in history if t["role"] == "user"), "(empty conversation)")
+        preview = first_user_turn[:80] + ("..." if len(first_user_turn) > 80 else "")
+        results.append(
+            {"session_id": session_id, "preview": preview, "updated_at": updated_at, "turn_count": len(history)}
+        )
+    return results

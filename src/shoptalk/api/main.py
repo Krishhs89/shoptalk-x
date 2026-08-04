@@ -22,6 +22,8 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 
 from shoptalk.api import logging_store
 from shoptalk.api.schemas import (
+    ConversationDetailResponse,
+    ConversationListResponse,
     FeedbackRequest,
     HealthResponse,
     ImageSearchResponse,
@@ -50,9 +52,12 @@ REQUEST_COUNT = Counter("shoptalk_requests_total", "Total requests", ["endpoint"
 REQUEST_LATENCY = Histogram("shoptalk_request_latency_seconds", "End-to-end request latency", ["endpoint"])
 STAGE_LATENCY = Histogram("shoptalk_stage_latency_seconds", "Per-stage latency", ["endpoint", "stage"])
 
-# In-memory session store: session_id -> [{"role", "content"}, ...]. Fine for a
-# single-instance dev/demo deployment; swap for Redis before scaling out.
-_state = {"cfg": None, "sessions": {}}
+# In-process cache of session_id -> [{"role", "content"}, ...], backed by the
+# SQLite `conversations` table (logging_store) for durability across restarts
+# and for the UI's history/resume feature. The cache avoids a DB round trip
+# on every token of a streamed response; every completed turn is written
+# through to SQLite so a restart never loses more than one in-flight turn.
+_state = {"cfg": None, "sessions": {}, "session_users": {}}
 
 
 @asynccontextmanager
@@ -88,8 +93,17 @@ def _hits_to_products(hits: list) -> list:
     ]
 
 
-def _get_session(session_id: str) -> list:
-    return _state["sessions"].setdefault(session_id, [])
+def _get_session(session_id: str, user_name: str = None) -> list:
+    if session_id not in _state["sessions"]:
+        persisted = logging_store.load_conversation(session_id)
+        if persisted:
+            _state["sessions"][session_id] = persisted["history"]
+            _state["session_users"].setdefault(session_id, persisted["user_name"])
+        else:
+            _state["sessions"][session_id] = []
+    if user_name:
+        _state["session_users"][session_id] = user_name
+    return _state["sessions"][session_id]
 
 
 @app.middleware("http")
@@ -132,10 +146,11 @@ def _respond_or_stream(
     stage1_ms: float,
     rerank_ms: float,
     stream: bool,
+    user_name: str = None,
     extra_fields: dict = None,
 ):
     cfg = _state["cfg"]
-    history = _get_session(session_id)
+    history = _get_session(session_id, user_name)
     request_id = str(uuid.uuid4())
 
     if stream:
@@ -162,6 +177,9 @@ def _respond_or_stream(
                 {"stage1_ms": stage1_ms, "rerank_ms": rerank_ms, "llm_ms": llm_ms,
                  "total_ms": stage1_ms + rerank_ms + llm_ms},
             )
+            logging_store.save_conversation(
+                session_id, _state["session_users"].get(session_id) or "anonymous", history
+            )
             yield f"event: done\ndata: {request_id}\n\n"
 
         return StreamingResponse(token_stream(), media_type="text/event-stream")
@@ -180,6 +198,9 @@ def _respond_or_stream(
     )
     logging_store.log_prediction(
         request_id, endpoint, session_id, query_for_llm, reranked, answer_text, latency.model_dump()
+    )
+    logging_store.save_conversation(
+        session_id, _state["session_users"].get(session_id) or "anonymous", history
     )
 
     fields = dict(
@@ -208,7 +229,8 @@ def search_text(req: TextSearchRequest, request: Request):
     STAGE_LATENCY.labels(endpoint="/search/text", stage="rerank").observe(t2 - t1)
 
     return _respond_or_stream(
-        "/search/text", req.query, reranked, session_id, stage1_ms, rerank_ms, req.stream
+        "/search/text", req.query, reranked, session_id, stage1_ms, rerank_ms, req.stream,
+        user_name=req.user_name,
     )
 
 
@@ -217,6 +239,7 @@ async def search_image(
     request: Request,
     file: UploadFile = File(...),
     session_id: str = None,
+    user_name: str = None,
     top_k: int = None,
     stream: bool = False,
 ):
@@ -254,7 +277,7 @@ async def search_image(
     )
     return _respond_or_stream(
         "/search/image", query_for_llm, reranked, session_id, stage1_ms, rerank_ms, stream,
-        extra_fields={"pseudo_query": pseudo_query},
+        user_name=user_name, extra_fields={"pseudo_query": pseudo_query},
     )
 
 
@@ -292,3 +315,27 @@ def feedback(req: FeedbackRequest):
         raise HTTPException(status_code=422, detail="rating must be +1 or -1")
     logging_store.log_feedback(req.request_id, req.rating, req.comment)
     return {"status": "recorded"}
+
+
+@app.get("/conversations", response_model=ConversationListResponse, dependencies=[Depends(require_api_key)])
+def list_conversations(user_name: str, limit: int = 20):
+    if not user_name.strip():
+        raise HTTPException(status_code=422, detail="user_name is required")
+    return ConversationListResponse(conversations=logging_store.list_conversations(user_name, limit))
+
+
+@app.get(
+    "/conversations/{session_id}",
+    response_model=ConversationDetailResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def get_conversation(session_id: str):
+    convo = logging_store.load_conversation(session_id)
+    if convo is None:
+        raise HTTPException(status_code=404, detail="conversation not found")
+    return ConversationDetailResponse(
+        session_id=session_id,
+        user_name=convo["user_name"],
+        history=convo["history"],
+        updated_at=convo["updated_at"],
+    )
