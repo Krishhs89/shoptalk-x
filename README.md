@@ -6,6 +6,7 @@ conversational text/photo search over a ~10k-product catalog, plus a
 "did I get the right item?" photo-verification flow.
 
 **Start here:**
+- **How do I use the running app?** → [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md)
 - **What does it do?** → [docs/FUNCTIONAL_OVERVIEW.md](docs/FUNCTIONAL_OVERVIEW.md)
 - **How is it built?** → [docs/TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md)
 - **Per-model details** → [docs/model_cards/](docs/model_cards/)
