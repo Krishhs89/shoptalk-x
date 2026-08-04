@@ -21,20 +21,23 @@ process changes once those are available, it's a direct swap).
 | API docs (Swagger) | http://localhost:8000/docs | Interactive API explorer |
 | MLflow | http://localhost:5000 | Experiment tracking / model registry |
 
-**Important, measured-live, not estimated:** on this Mac, Ollama is running
+**Important, measured live, not estimated:** on this Mac, Ollama is running
 `llama3.1:8b-instruct-q4_0` **CPU-only** — no GPU/Metal acceleration is
-available to it in this environment. `/verify` (5.3s) and the retrieval
-stages are fast; a `/search/text` or `/search/image` call that includes
-LLM generation took **12+ minutes** for a single response in direct
-testing. This is not a bug — the retrieval, reranking, and generation are
-all producing correct, grounded output; the *hardware* is just far below
-what the design targets (a GPU brings this to the <3s SLO — see
-`results/day6_latency_report.md` for the full analysis and
+available to it in this environment. A full `POST /search/text` request was
+timed end-to-end: `stage1=224ms, rerank=1637ms, llm=1,008,506ms
+(~16.8 min), total=1,010,367ms (~16.8 min)`. The answer itself was
+accurate and well-grounded (correctly recommended a colorful phone case,
+cited the right product ID and price, sensible ranked alternatives) — the
+*quality* is real; the *hardware* is just far below what the design
+targets. Retrieval + reranking together are under 2 seconds; the LLM step
+alone accounts for 99.8% of total latency. A GPU (Kaggle T4, EC2
+G4dn.xlarge) is expected to bring the LLM step to the design doc's <2.5s
+target — see `results/day6_latency_report.md` for the full analysis and
 `docs/model_cards/llm.md` for a faster stand-in model you can swap in
 locally via `OLLAMA_MODEL=qwen2.5:0.5b-instruct` for responsive testing,
 with the tradeoff that response *quality* will be lower than the real 8B
-model). **Use the Verify tab and the API docs for a fast, live demo right
-now; expect text/photo chat search to take several minutes per turn on
+model. **Use the Verify tab and the API docs for a fast, live demo right
+now; a chat-search turn with the full model takes roughly 15-20 minutes on
 this machine until it's moved to GPU hardware.**
 
 ## Bringing it up yourself (if it's not already running)

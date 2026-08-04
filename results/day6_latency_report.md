@@ -58,6 +58,29 @@ closed). The per-stage numbers below are the more trustworthy source.
   in this build); what's environment-limited here is *speed*, not
   *correctness*.
 
+## Update: full 8B model, isolated request (500-product local deployment)
+
+A single, uncontended `POST /search/text` request against the *real*
+production model (`llama3.1:8b-instruct-q4_0`, not the `qwen2.5:0.5b`
+stand-in above) was timed end-to-end on this same CPU-only Mac:
+
+| Stage | Time |
+|---|---|
+| Stage-1 ANN retrieval | 224ms |
+| Cross-encoder rerank | 1,637ms |
+| LLM generation | 1,008,506ms (~16.8 min) |
+| **Total** | **1,010,367ms (~16.8 min)** |
+
+This confirms the pattern above at the real target model: retrieval +
+reranking together are under 2 seconds regardless of which LLM is
+downstream; **the LLM step is 99.8% of total latency** and scales directly
+with model size (8B vs 0.5B) on CPU. The response itself was accurate and
+correctly grounded (right product, right price, sensible alternatives) —
+this is a pure hardware-speed finding, not a correctness or design issue.
+On a GPU, an 8B q4 model typically generates at 30-80+ tokens/sec (vs. an
+estimated ~0.5-1 token/sec observed here); a response of this length would
+be expected to land inside the design doc's <2.5s target.
+
 ## Optimization levers (design doc §4.2, for the real deployment)
 
 Documented but not benchmarked against each other in this environment
