@@ -294,8 +294,11 @@ def main():
     health = check_health()
     with st.sidebar:
         st.markdown(f"**API:** `{API_BASE_URL}`")
-        if health:
+        if health and health["status"] == "ok":
             st.success("API online")
+            st.json(health["models_loaded"])
+        elif health:
+            st.warning("API online, but the LLM (Ollama) is unreachable -- searches will fail at the answer step")
             st.json(health["models_loaded"])
         else:
             st.error("API unreachable -- start the FastAPI service first")

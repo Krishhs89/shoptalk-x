@@ -16,6 +16,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import requests
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
@@ -121,14 +122,29 @@ async def latency_and_metrics_middleware(request: Request, call_next):
 @app.get("/health", response_model=HealthResponse)
 def health():
     cfg = _state["cfg"]
+    # The in-process models (embedding/reranker/CLIP/BLIP) are warmed at
+    # startup and the app wouldn't be serving requests if that failed, so
+    # "loaded" is accurate for them. Ollama is a separate process/container
+    # that can go down *after* startup (e.g. restarted, OOM-killed) without
+    # this process knowing -- a static "ok" here would keep telling the UI
+    # everything's fine while every search silently fails at the LLM step.
+    # A cheap live probe against Ollama's own list-models endpoint catches
+    # that case.
+    ollama_ok = False
+    try:
+        resp = requests.get(f"{cfg['llm']['base_url']}/api/tags", timeout=2)
+        ollama_ok = resp.ok
+    except requests.RequestException:
+        ollama_ok = False
+
     return HealthResponse(
-        status="ok",
+        status="ok" if ollama_ok else "degraded",
         models_loaded={
             "text_embedding": cfg["embeddings"]["text_model"],
             "reranker": cfg["retrieval"]["rerank_model"],
             "clip": f"{cfg['clip']['model_name']}/{cfg['clip']['pretrained']}",
             "captioner": cfg["captioning"]["model"],
-            "llm": cfg["llm"]["model"],
+            "llm": cfg["llm"]["model"] + ("" if ollama_ok else " (UNREACHABLE)"),
         },
     )
 
