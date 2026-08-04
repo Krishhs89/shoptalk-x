@@ -222,7 +222,7 @@ src/shoptalk/
   llm_finetune/             LoRA/QLoRA dataset + training code
   monitoring/               Evidently drift report
   loadtest/                 Locust load test
-notebooks/               EDA + image search demo
+notebooks/               EDA + image search demo + Colab/Kaggle GPU pipeline
 docs/                    all documentation (see top of this file)
 docs/model_cards/         per-model cards
 docs/deployment/           AWS EC2 guide

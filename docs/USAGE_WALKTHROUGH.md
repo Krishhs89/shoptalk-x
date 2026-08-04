@@ -139,10 +139,19 @@ improving with scale).
 development, small compared to the ~10k-product target the design doc
 specifies. Every part of the pipeline (download → preprocess → caption →
 embed → index) that would run against the full 10k-product catalog ran here
-against this 500-product slice — same code, smaller `--limit`. Scaling up is
-a config change (`configs/config.yaml`'s `target_product_count`) plus
-re-running the same commands with more time budgeted for captioning/
-embedding.
+against this 500-product slice — same code, smaller `--limit`.
+
+## Scaling up on a free GPU (Colab / Kaggle), before AWS is ready
+
+`notebooks/03_gpu_pipeline_colab_kaggle.ipynb` runs the same pipeline (full
+~10k-product scope by default) on a free Colab GPU (Google One's bundled
+Colab compute works) or Kaggle's free GPU quota — captioning, embedding, and
+fine-tuning are all dramatically faster there than on this Mac's CPU. It
+zips the resulting `data/` + `results/` artifacts for download; the
+notebook's last section has the exact `rsync` commands to merge them into
+this local deployment and restart the API to pick them up. Colab/Kaggle are
+for this batch step only, not for hosting the live service (session limits,
+no stable public URL) — see `docs/deployment/aws_ec2.md` for that.
 
 ## Moving this to AWS
 
