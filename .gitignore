@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
-.venv_smoketest/
+.venv*/
 *.egg-info/
 
 # Data (downloaded/generated, not committed)
