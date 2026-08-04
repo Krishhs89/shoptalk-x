@@ -14,12 +14,22 @@ Output: data/processed/products.parquet + .csv, overwritten in place with the
 IMPORTANT: run this BEFORE re-running embeddings.embed_text, so the index
 reflects the caption-augmented documents.
 
+Resumable: each completed batch is appended to a
+data/processed/_captions_checkpoint.jsonl file and fsync'd to disk before
+moving to the next batch. If the process dies partway through (e.g. a Colab
+runtime disconnect on a large run), re-running this exact command skips
+every item_id already in the checkpoint instead of re-captioning from
+scratch. The checkpoint is deleted on a clean full completion.
+
 Usage:
   python -m shoptalk.data.caption_images
   python -m shoptalk.data.caption_images --limit 200   # smoke test
 """
 import argparse
+import json
+import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 import torch
@@ -69,6 +79,19 @@ def caption_batch(processor, model, device, image_paths: list, max_new_tokens: i
     return captions
 
 
+def _load_checkpoint(checkpoint_path: Path) -> dict:
+    captioned = {}
+    if checkpoint_path.exists():
+        with open(checkpoint_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                captioned[rec["item_id"]] = rec["caption"]
+    return captioned
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, default=None, help="cap rows captioned (smoke tests)")
@@ -76,51 +99,74 @@ def main():
 
     cfg = load_config()
     dcfg, ccfg = cfg["data"], cfg["captioning"]
+    processed_dir = dcfg["processed_dir"]
 
-    df = pd.read_parquet(f"{dcfg['processed_dir']}/products.parquet")
+    df = pd.read_parquet(f"{processed_dir}/products.parquet")
     if args.limit:
         df = df.head(args.limit).copy()
-
-    device = resolve_device(ccfg["device"])
-    print(f"captioning {len(df)} products with {ccfg['model']} on {device}")
-
-    processor = BlipProcessor.from_pretrained(ccfg["model"])
-    model = BlipForConditionalGeneration.from_pretrained(ccfg["model"]).to(device)
-    model.eval()
-
-    captions = [""] * len(df)
-    batch_size = ccfg["batch_size"]
     rows = df.reset_index(drop=True)
 
-    for start in range(0, len(rows), batch_size):
-        batch = rows.iloc[start : start + batch_size]
-        paths = [p if avail else None for p, avail in zip(batch["image_path"], batch["image_available"])]
-        # skip PIL.Image.open on None paths -- caption_batch already handles
-        # FileNotFoundError, but None isn't a valid path type, so pre-filter
-        batch_captions = [""] * len(batch)
-        real_paths = [(i, p) for i, p in enumerate(paths) if p]
-        if real_paths:
-            idxs, real_path_list = zip(*real_paths)
-            sub_captions = caption_batch(processor, model, device, list(real_path_list), ccfg["max_new_tokens"])
-            for local_i, caption in zip(idxs, sub_captions):
-                batch_captions[local_i] = caption
+    checkpoint_path = Path(processed_dir) / "_captions_checkpoint.jsonl"
+    captioned = _load_checkpoint(checkpoint_path)
+    if captioned:
+        print(f"resuming from checkpoint: {len(captioned)}/{len(rows)} products already captioned")
 
-        captions[start : start + len(batch)] = batch_captions
-        # flush=True matters here: under `!python -m ...` in a notebook cell,
-        # stdout isn't a TTY, so Python fully block-buffers it -- without an
-        # explicit flush, this line sits invisible for a long stretch (until
-        # the OS pipe buffer fills or the process exits) rather than updating
-        # live, making a genuinely-progressing run look frozen.
-        print(f"  {min(start + batch_size, len(rows))}/{len(rows)} captioned", end="\r", flush=True)
+    pending_mask = ~rows["item_id"].isin(captioned.keys())
+    pending_rows = rows[pending_mask]
 
-    print()
-    df["caption"] = captions
+    if pending_rows.empty:
+        print("all products already captioned in checkpoint -- nothing left to run")
+    else:
+        device = resolve_device(ccfg["device"])
+        print(f"captioning {len(pending_rows)} remaining products with {ccfg['model']} on {device}")
+
+        processor = BlipProcessor.from_pretrained(ccfg["model"])
+        model = BlipForConditionalGeneration.from_pretrained(ccfg["model"]).to(device)
+        model.eval()
+
+        batch_size = ccfg["batch_size"]
+
+        with open(checkpoint_path, "a") as ckpt_f:
+            for start in range(0, len(pending_rows), batch_size):
+                batch = pending_rows.iloc[start : start + batch_size]
+                paths = [p if avail else None for p, avail in zip(batch["image_path"], batch["image_available"])]
+                # skip PIL.Image.open on None paths -- caption_batch already handles
+                # FileNotFoundError, but None isn't a valid path type, so pre-filter
+                batch_captions = [""] * len(batch)
+                real_paths = [(i, p) for i, p in enumerate(paths) if p]
+                if real_paths:
+                    idxs, real_path_list = zip(*real_paths)
+                    sub_captions = caption_batch(
+                        processor, model, device, list(real_path_list), ccfg["max_new_tokens"]
+                    )
+                    for local_i, caption in zip(idxs, sub_captions):
+                        batch_captions[local_i] = caption
+
+                for item_id, caption in zip(batch["item_id"], batch_captions):
+                    captioned[item_id] = caption
+                    ckpt_f.write(json.dumps({"item_id": item_id, "caption": caption}) + "\n")
+                # flush + fsync so a completed batch survives a hard interruption
+                # (e.g. a Colab runtime disconnect), not just a clean process exit
+                # -- flush=True on the progress print matters too: under
+                # `!python -m ...` in a notebook cell, stdout isn't a TTY, so
+                # Python fully block-buffers it and an unflushed line can sit
+                # invisible for a long stretch, making a genuinely-progressing
+                # run look frozen.
+                ckpt_f.flush()
+                os.fsync(ckpt_f.fileno())
+
+                done = min(start + batch_size, len(pending_rows))
+                print(f"  {done}/{len(pending_rows)} captioned", end="\r", flush=True)
+        print()
+
+    df = rows
+    df["caption"] = [captioned.get(item_id, "") for item_id in df["item_id"]]
     has_caption = df["caption"] != ""
     df.loc[has_caption, "document"] = df.loc[has_caption, "document"] + " | " + df.loc[has_caption, "caption"]
 
-    processed_dir = dcfg["processed_dir"]
     df.to_parquet(f"{processed_dir}/products.parquet", index=False)
     df.to_csv(f"{processed_dir}/products.csv", index=False)
+    checkpoint_path.unlink(missing_ok=True)  # clean completion -- avoid stale-resume confusion on a future fresh run
 
     print(f"captioned {has_caption.sum()}/{len(df)} products (rest had no available image)")
     print(f"example: {df.loc[has_caption, 'caption'].iloc[0]!r}" if has_caption.any() else "no captions generated")
