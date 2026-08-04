@@ -4,6 +4,12 @@ embed both images with CLIP -> pairwise features -> small MLP -> match
 probability. Reports ROC-AUC and FAR/FRR at a threshold chosen by Youden's J
 statistic on the validation split (design doc §3.3b, §9).
 
+Resumable: the slow step here is CLIP-embedding every pair image (the MLP
+itself trains in seconds). Each embedded image is appended to a
+data/verification/_clip_embed_cache.jsonl file and fsync'd, same
+Colab-disconnect pattern as embed_image.py -- a re-run skips every image
+already in the cache. The cache is deleted on a clean completion.
+
 Usage:
   python -m shoptalk.verification.train_verification
 """
@@ -34,23 +40,60 @@ def resolve_device(requested: str) -> str:
     return "cpu"
 
 
-def embed_images(paths: list, clip_model, preprocess, device: str, batch_size: int = 32) -> dict:
+def _load_embed_cache(cache_path: Path) -> dict:
+    """image path -> normalized CLIP vector for every image already embedded
+    by a previous (possibly interrupted) run. Last write wins on duplicates."""
+    cached = {}
+    if cache_path.exists():
+        with open(cache_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                cached[rec["path"]] = np.array(rec["embedding"], dtype=np.float32)
+    return cached
+
+
+def embed_images(
+    paths: list, clip_model, preprocess, device: str, batch_size: int = 32, cache_path: Path = None
+) -> dict:
+    import os
+
     unique_paths = sorted(set(paths))
     embeddings = {}
-    for start in range(0, len(unique_paths), batch_size):
-        batch_paths = unique_paths[start : start + batch_size]
-        images = torch.stack([preprocess(Image.open(p).convert("RGB")) for p in batch_paths]).to(device)
-        with torch.no_grad():
-            emb = clip_model.encode_image(images)
-            emb = emb / emb.norm(dim=-1, keepdim=True)
-        for path, vec in zip(batch_paths, emb.cpu().numpy()):
-            embeddings[path] = vec
-        # flush=True -- see caption_images.py for why this matters under
-        # `!python -m ...` in a notebook cell (unflushed stdout looks frozen).
-        print(
-            f"  embedded {min(start + batch_size, len(unique_paths))}/{len(unique_paths)} images",
-            end="\r", flush=True,
-        )
+    if cache_path is not None:
+        cached = _load_embed_cache(cache_path)
+        embeddings = {p: v for p, v in cached.items() if p in set(unique_paths)}
+        if embeddings:
+            print(f"  resuming from cache: {len(embeddings)}/{len(unique_paths)} images already embedded")
+    pending = [p for p in unique_paths if p not in embeddings]
+
+    ckpt_f = open(cache_path, "a") if cache_path is not None else None
+    try:
+        for start in range(0, len(pending), batch_size):
+            batch_paths = pending[start : start + batch_size]
+            images = torch.stack([preprocess(Image.open(p).convert("RGB")) for p in batch_paths]).to(device)
+            with torch.no_grad():
+                emb = clip_model.encode_image(images)
+                emb = emb / emb.norm(dim=-1, keepdim=True)
+            for path, vec in zip(batch_paths, emb.cpu().numpy()):
+                embeddings[path] = vec
+                if ckpt_f is not None:
+                    ckpt_f.write(json.dumps({"path": path, "embedding": vec.tolist()}) + "\n")
+            if ckpt_f is not None:
+                ckpt_f.flush()
+                os.fsync(ckpt_f.fileno())
+            # flush=True -- see caption_images.py for why this matters under
+            # `!python -m ...` in a notebook cell (unflushed stdout looks frozen).
+            print(
+                f"  embedded {min(start + batch_size, len(pending))}/{len(pending)} pending "
+                f"({len(embeddings)}/{len(unique_paths)} total)",
+                end="\r", flush=True,
+            )
+    finally:
+        if ckpt_f is not None:
+            ckpt_f.close()
     print()
     return embeddings
 
@@ -84,7 +127,8 @@ def main():
 
     all_paths = [p["image_a_path"] for p in pairs] + [p["image_b_path"] for p in pairs]
     print("embedding all images with CLIP...")
-    embeddings = embed_images(all_paths, clip_model, preprocess, device)
+    embed_cache_path = pairs_path.parent / "_clip_embed_cache.jsonl"
+    embeddings = embed_images(all_paths, clip_model, preprocess, device, cache_path=embed_cache_path)
 
     X, y = [], []
     for p in pairs:
@@ -179,6 +223,7 @@ def main():
     with mlflow.start_run(run_name="verification_head"):
         mlflow.log_params({"hidden_dim": vcfg["hidden_dim"], "epochs": vcfg["epochs"], "lr": vcfg["lr"]})
         mlflow.log_metrics({"roc_auc": final_auc, "far": far, "frr": frr, "threshold": threshold})
+    embed_cache_path.unlink(missing_ok=True)  # clean completion -- avoid stale-resume confusion
     return 0
 
 

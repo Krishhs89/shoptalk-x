@@ -1,0 +1,595 @@
+From d579cdd1a769dba05769b287774d7f4565c6744b Mon Sep 17 00:00:00 2001
+From: "Krishna (via Claude)" <krishhs89@gmail.com>
+Date: Tue, 4 Aug 2026 11:54:39 -0500
+Subject: [PATCH] Make text embedding, fine-tuning, and verification training
+ disconnect-safe
+
+Completes the Colab-resumability work: captioning and image embedding were
+already checkpointed (4cacf67, bd7af0d, 27e14e7); this covers the remaining
+long-running steps:
+
+- embed_text: per-batch JSONL checkpoint (same pattern as embed_image);
+  monolithic encode() replaced with batched+fsync'd loop; Chroma still
+  rebuilt once from the merged set on completion
+- finetune_text: one-epoch-at-a-time training with atomic
+  _finetune_state.json; resume loads last saved weights; warmup only on
+  fresh runs; distrusts state without a loadable saved model
+- train_verification: pair-image CLIP embeddings cached per batch to
+  _clip_embed_cache.jsonl (the slow step; MLP training itself is seconds)
+- build_pairs needed no change: its slow step (second-view downloads)
+  already skips existing files
+- notebook: per-stage notes on how to resume after a disconnect
+
+Validated: 20/20 checkpoint-logic tests pass (12 new, 8 existing as
+regression). Full-suite + real-pipeline validation to run on local GPU / CI
+(sandbox couldn't install torch).
+---
+ notebooks/03_gpu_pipeline_colab_kaggle.ipynb  | 21 ++---
+ src/shoptalk/embeddings/embed_text.py         | 80 ++++++++++++++++---
+ src/shoptalk/embeddings/finetune_text.py      | 70 +++++++++++++---
+ .../verification/train_verification.py        | 77 ++++++++++++++----
+ tests/test_embed_text_checkpoint.py           | 41 ++++++++++
+ tests/test_finetune_resume.py                 | 46 +++++++++++
+ tests/test_verification_embed_cache.py        | 38 +++++++++
+ 7 files changed, 328 insertions(+), 45 deletions(-)
+ create mode 100644 tests/test_embed_text_checkpoint.py
+ create mode 100644 tests/test_finetune_resume.py
+ create mode 100644 tests/test_verification_embed_cache.py
+
+diff --git a/notebooks/03_gpu_pipeline_colab_kaggle.ipynb b/notebooks/03_gpu_pipeline_colab_kaggle.ipynb
+index d42568d..bf34694 100644
+--- a/notebooks/03_gpu_pipeline_colab_kaggle.ipynb
++++ b/notebooks/03_gpu_pipeline_colab_kaggle.ipynb
+@@ -5,30 +5,30 @@
+    "id": "e5e5b39c",
+    "metadata": {},
+    "source": [
+-    "# ShopTalk-X — GPU Batch Pipeline (Colab / Kaggle)\n",
++    "# ShopTalk-X \u2014 GPU Batch Pipeline (Colab / Kaggle)\n",
+     "\n",
+     "Runs the **offline, GPU-friendly** parts of the pipeline on a free GPU\n",
+     "(Google Colab, including Google One's bundled Colab compute, or Kaggle's\n",
+-    "free GPU quota) — BLIP captioning, CLIP + text embedding, embedding\n",
++    "free GPU quota) \u2014 BLIP captioning, CLIP + text embedding, embedding\n",
+     "fine-tuning, and verification-head training all run dramatically faster\n",
+     "here than on a CPU-only laptop.\n",
+     "\n",
+     "**What this notebook does NOT do:** serve the app. Ollama/FastAPI/Streamlit\n",
+-    "still run wherever you're hosting them (this Mac for now, AWS later) — this\n",
++    "still run wherever you're hosting them (this Mac for now, AWS later) \u2014 this\n",
+     "notebook only rebuilds the *data artifacts* (processed catalog, vector\n",
+     "indexes, fine-tuned models) at a larger, faster-built scale, which you then\n",
+     "download and drop into your local `data/` folder.\n",
+     "\n",
+     "## Before you start\n",
+     "\n",
+-    "1. **Runtime → Change runtime type → GPU** (Colab) or enable a GPU\n",
++    "1. **Runtime \u2192 Change runtime type \u2192 GPU** (Colab) or enable a GPU\n",
+     "   accelerator in the notebook's settings sidebar (Kaggle).\n",
+     "2. You'll need a **GitHub Personal Access Token** (fine-grained, read-only\n",
+-    "   access to `Krishhs89/shoptalk-x` is enough) since the repo is private —\n",
++    "   access to `Krishhs89/shoptalk-x` is enough) since the repo is private \u2014\n",
+     "   generate one at github.com/settings/tokens. You'll be prompted for it\n",
+     "   below; it isn't echoed or saved in the notebook.\n",
+     "3. Default target: the **full ~10k-product catalog** (`configs/config.yaml`'s\n",
+-    "   `target_product_count`), matching the original design doc scope — this\n",
++    "   `target_product_count`), matching the original design doc scope \u2014 this\n",
+     "   is the point of running on GPU instead of a laptop CPU. Lower\n",
+     "   `TARGET_PRODUCTS` below if you want a faster, smaller run instead.\n"
+    ]
+@@ -187,7 +187,8 @@
+    "id": "a4fb0e14",
+    "metadata": {},
+    "source": [
+-    "## 6. Embeddings: text (bge) + images (CLIP)"
++    "## 6. Embeddings: text (bge) + images (CLIP)",
++    "\n**Disconnect-safe:** both steps now checkpoint per batch (`_text_embeddings_checkpoint.jsonl` / `_image_embeddings_checkpoint.jsonl` in `data/processed/`). If the runtime disconnects, just re-run the cell -- already-embedded products are skipped.\n"
+    ]
+   },
+   {
+@@ -229,7 +230,8 @@
+    "source": [
+     "## 8. Fine-tune embeddings (triplet loss + hard negatives)\n",
+     "\n",
+-    "GPU makes more epochs / larger batches practical than the CPU smoke tests."
++    "GPU makes more epochs / larger batches practical than the CPU smoke tests.",
++    "\n**Disconnect-safe:** trains one epoch at a time, saving weights + `_finetune_state.json` after each epoch. Re-running the cell resumes from the last completed epoch instead of restarting.\n"
+    ]
+   },
+   {
+@@ -248,7 +250,8 @@
+    "id": "131c4231",
+    "metadata": {},
+    "source": [
+-    "## 9. Verification head: pairs + training"
++    "## 9. Verification head: pairs + training",
++    "\n**Disconnect-safe:** pair-image CLIP embeddings are cached to `data/verification/_clip_embed_cache.jsonl`; second-view image downloads already skip existing files. Re-run the cell to resume.\n"
+    ]
+   },
+   {
+diff --git a/src/shoptalk/embeddings/embed_text.py b/src/shoptalk/embeddings/embed_text.py
+index 48a5b2b..9687c97 100644
+--- a/src/shoptalk/embeddings/embed_text.py
++++ b/src/shoptalk/embeddings/embed_text.py
+@@ -5,6 +5,16 @@ and upserts the vectors into a persistent Chroma collection.
+ BGE convention: passages (our product documents) are embedded as-is; queries
+ get an instruction prefix at *search* time (see retrieval/search.py), not here.
+ 
++Resumable: each completed batch's embeddings are appended to a
++data/processed/_text_embeddings_checkpoint.jsonl file and fsync'd to disk
++before moving to the next batch -- same pattern as embed_image.py /
++caption_images.py, same motivation (a Colab runtime disconnect partway
++through a 10k-product run used to lose everything, because the old code did
++one monolithic model.encode() and only wrote to Chroma at the very end).
++Re-running the exact same command skips every item_id already in the
++checkpoint. The Chroma collection is only (re)built once, from the full
++merged set, at the end -- the checkpoint is deleted on a clean completion.
++
+ Input:  data/processed/products.parquet
+ Output: data/chroma/  (persistent Chroma collection, see configs/config.yaml)
+ 
+@@ -13,7 +23,9 @@ Usage:
+   python -m shoptalk.embeddings.embed_text --limit 200   # smoke test
+ """
+ import argparse
++import json
+ import sys
++from pathlib import Path
+ 
+ import chromadb
+ import pandas as pd
+@@ -34,6 +46,21 @@ def resolve_device(requested: str) -> str:
+     return "cpu"
+ 
+ 
++def _load_checkpoint(checkpoint_path: Path) -> dict:
++    """item_id -> embedding for every batch already completed. Last write
++    wins on duplicate ids (can only happen if a batch was re-run)."""
++    embedded = {}
++    if checkpoint_path.exists():
++        with open(checkpoint_path) as f:
++            for line in f:
++                line = line.strip()
++                if not line:
++                    continue
++                rec = json.loads(line)
++                embedded[rec["item_id"]] = rec["embedding"]
++    return embedded
++
++
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--limit", type=int, default=None, help="cap rows embedded (smoke tests)")
+@@ -47,16 +74,46 @@ def main():
+         df = df.head(args.limit)
+     print(f"embedding {len(df)} products with {ecfg['text_model']}")
+ 
+-    device = resolve_device(ecfg["device"])
+-    print(f"device: {device}")
+-    model = SentenceTransformer(ecfg["text_model"], device=device)
+-
+-    embeddings = model.encode(
+-        df["document"].tolist(),
+-        batch_size=ecfg["batch_size"],
+-        show_progress_bar=True,
+-        normalize_embeddings=True,  # cosine similarity via dot product
+-    )
++    checkpoint_path = Path(dcfg["processed_dir"]) / "_text_embeddings_checkpoint.jsonl"
++    embedded = _load_checkpoint(checkpoint_path)
++    # Guard against a checkpoint from a different --limit/scope: only reuse
++    # entries that are still part of this run's product set.
++    embedded = {k: v for k, v in embedded.items() if k in set(df["item_id"])}
++    if embedded:
++        print(f"resuming from checkpoint: {len(embedded)}/{len(df)} products already embedded")
++
++    pending_df = df[~df["item_id"].isin(embedded.keys())].reset_index(drop=True)
++
++    if pending_df.empty:
++        print("all products already embedded in checkpoint -- nothing left to run")
++    else:
++        device = resolve_device(ecfg["device"])
++        print(f"device: {device}")
++        model = SentenceTransformer(ecfg["text_model"], device=device)
++
++        batch_size = ecfg["batch_size"]
++        with open(checkpoint_path, "a") as ckpt_f:
++            for start in range(0, len(pending_df), batch_size):
++                batch = pending_df.iloc[start : start + batch_size]
++                vectors = model.encode(
++                    batch["document"].tolist(),
++                    batch_size=batch_size,
++                    show_progress_bar=False,
++                    normalize_embeddings=True,  # cosine similarity via dot product
++                )
++                for item_id, vec in zip(batch["item_id"], vectors):
++                    vec_list = vec.tolist()
++                    ckpt_f.write(json.dumps({"item_id": item_id, "embedding": vec_list}) + "\n")
++                    embedded[item_id] = vec_list
++                ckpt_f.flush()
++                import os
++
++                os.fsync(ckpt_f.fileno())
++                print(
++                    f"  embedded {min(start + batch_size, len(pending_df))}/{len(pending_df)} pending "
++                    f"({len(embedded)}/{len(df)} total)",
++                    flush=True,
++                )
+ 
+     client = chromadb.PersistentClient(path=ecfg["chroma_dir"])
+     # fresh collection each run so re-embedding never mixes stale + new vectors
+@@ -74,12 +131,13 @@ def main():
+ 
+     collection.add(
+         ids=df["item_id"].tolist(),
+-        embeddings=embeddings.tolist(),
++        embeddings=[embedded[item_id] for item_id in df["item_id"]],
+         documents=df["document"].tolist(),
+         metadatas=metadatas.to_dict("records"),
+     )
+ 
+     print(f"indexed {collection.count()} vectors -> {ecfg['chroma_dir']}/{ecfg['collection_name']}")
++    checkpoint_path.unlink(missing_ok=True)  # clean completion -- avoid stale-resume confusion
+     return 0
+ 
+ 
+diff --git a/src/shoptalk/embeddings/finetune_text.py b/src/shoptalk/embeddings/finetune_text.py
+index 936bf17..e9aa73c 100644
+--- a/src/shoptalk/embeddings/finetune_text.py
++++ b/src/shoptalk/embeddings/finetune_text.py
+@@ -11,12 +11,20 @@ Reuses the Day-2 golden eval set as training supervision rather than
+ requiring separate labels -- the same query/positive-product pairs already
+ curated for evaluation double as fine-tuning triplets.
+ 
++Resumable: trains ONE epoch at a time, saving the model to --output-dir and
++recording progress in <output-dir>/_finetune_state.json after every epoch
++(same Colab-disconnect motivation as the checkpointed captioning/embedding
++steps -- a disconnect in epoch 3 of 3 used to lose all training). Re-running
++the same command loads the last saved epoch's weights and continues with the
++remaining epochs. The state file is removed on clean completion.
++
+ Usage:
+   python -m shoptalk.embeddings.finetune_text
+   python -m shoptalk.embeddings.finetune_text --epochs 1   # smoke test
+ """
+ import argparse
+ import json
++import os
+ import random
+ import sys
+ from pathlib import Path
+@@ -56,6 +64,29 @@ def build_triplets(golden_set: list, products_df: pd.DataFrame, seed: int) -> li
+     return examples
+ 
+ 
++def _load_state(state_path: Path) -> int:
++    """Completed-epoch count from a previous interrupted run (0 if none).
++    Only trusts the state file if the saved model directory is actually
++    loadable (config present) -- guards against a half-written save."""
++    if not state_path.exists():
++        return 0
++    try:
++        state = json.loads(state_path.read_text())
++        completed = int(state.get("completed_epochs", 0))
++    except (ValueError, json.JSONDecodeError):
++        return 0
++    model_config = state_path.parent / "config.json"
++    if completed > 0 and not model_config.exists():
++        return 0
++    return completed
++
++
++def _save_state(state_path: Path, completed_epochs: int, total_epochs: int) -> None:
++    tmp = state_path.with_suffix(".json.tmp")
++    tmp.write_text(json.dumps({"completed_epochs": completed_epochs, "total_epochs": total_epochs}))
++    os.replace(tmp, state_path)
++
++
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("--epochs", type=int, default=3)
+@@ -83,18 +114,39 @@ def main():
+             "golden set gives a much richer triplet set)"
+         )
+ 
+-    model = SentenceTransformer(ecfg["text_model"])
++    output_dir = args.output_dir or str(Path(dcfg["processed_dir"]).parent / "models" / "bge-finetuned")
++    state_path = Path(output_dir) / "_finetune_state.json"
++    completed = _load_state(state_path)
++
++    if completed >= args.epochs:
++        print(f"already trained {completed}/{args.epochs} epochs (per {state_path}) -- nothing left to run")
++        state_path.unlink(missing_ok=True)
++        return 0
++
++    if completed > 0:
++        print(f"resuming from epoch {completed + 1}/{args.epochs} (loading saved weights from {output_dir})")
++        model = SentenceTransformer(output_dir)
++    else:
++        model = SentenceTransformer(ecfg["text_model"])
++
+     train_dataloader = DataLoader(examples, shuffle=True, batch_size=args.batch_size)
+     train_loss = losses.TripletLoss(model=model)
+ 
+-    output_dir = args.output_dir or str(Path(dcfg["processed_dir"]).parent / "models" / "bge-finetuned")
+-    model.fit(
+-        train_objectives=[(train_dataloader, train_loss)],
+-        epochs=args.epochs,
+-        warmup_steps=max(1, int(0.1 * len(train_dataloader) * args.epochs)),
+-        output_path=output_dir,
+-        show_progress_bar=True,
+-    )
++    for epoch in range(completed, args.epochs):
++        # warmup only at the very start of a fresh run -- a resumed model is
++        # already past the unstable early-LR phase
++        warmup = max(1, int(0.1 * len(train_dataloader))) if epoch == 0 else 0
++        model.fit(
++            train_objectives=[(train_dataloader, train_loss)],
++            epochs=1,
++            warmup_steps=warmup,
++            output_path=output_dir,  # saves model at end of this epoch
++            show_progress_bar=True,
++        )
++        _save_state(state_path, epoch + 1, args.epochs)
++        print(f"epoch {epoch + 1}/{args.epochs} complete -- checkpoint saved to {output_dir}", flush=True)
++
++    state_path.unlink(missing_ok=True)  # clean completion
+     print(f"fine-tuned model saved -> {output_dir}")
+     print("next: python -m shoptalk.embeddings.eval_finetune --finetuned-path " + output_dir)
+     return 0
+diff --git a/src/shoptalk/verification/train_verification.py b/src/shoptalk/verification/train_verification.py
+index c6a5a92..41c95e2 100644
+--- a/src/shoptalk/verification/train_verification.py
++++ b/src/shoptalk/verification/train_verification.py
+@@ -4,6 +4,12 @@ embed both images with CLIP -> pairwise features -> small MLP -> match
+ probability. Reports ROC-AUC and FAR/FRR at a threshold chosen by Youden's J
+ statistic on the validation split (design doc §3.3b, §9).
+ 
++Resumable: the slow step here is CLIP-embedding every pair image (the MLP
++itself trains in seconds). Each embedded image is appended to a
++data/verification/_clip_embed_cache.jsonl file and fsync'd, same
++Colab-disconnect pattern as embed_image.py -- a re-run skips every image
++already in the cache. The cache is deleted on a clean completion.
++
+ Usage:
+   python -m shoptalk.verification.train_verification
+ """
+@@ -34,23 +40,60 @@ def resolve_device(requested: str) -> str:
+     return "cpu"
+ 
+ 
+-def embed_images(paths: list, clip_model, preprocess, device: str, batch_size: int = 32) -> dict:
++def _load_embed_cache(cache_path: Path) -> dict:
++    """image path -> normalized CLIP vector for every image already embedded
++    by a previous (possibly interrupted) run. Last write wins on duplicates."""
++    cached = {}
++    if cache_path.exists():
++        with open(cache_path) as f:
++            for line in f:
++                line = line.strip()
++                if not line:
++                    continue
++                rec = json.loads(line)
++                cached[rec["path"]] = np.array(rec["embedding"], dtype=np.float32)
++    return cached
++
++
++def embed_images(
++    paths: list, clip_model, preprocess, device: str, batch_size: int = 32, cache_path: Path = None
++) -> dict:
++    import os
++
+     unique_paths = sorted(set(paths))
+     embeddings = {}
+-    for start in range(0, len(unique_paths), batch_size):
+-        batch_paths = unique_paths[start : start + batch_size]
+-        images = torch.stack([preprocess(Image.open(p).convert("RGB")) for p in batch_paths]).to(device)
+-        with torch.no_grad():
+-            emb = clip_model.encode_image(images)
+-            emb = emb / emb.norm(dim=-1, keepdim=True)
+-        for path, vec in zip(batch_paths, emb.cpu().numpy()):
+-            embeddings[path] = vec
+-        # flush=True -- see caption_images.py for why this matters under
+-        # `!python -m ...` in a notebook cell (unflushed stdout looks frozen).
+-        print(
+-            f"  embedded {min(start + batch_size, len(unique_paths))}/{len(unique_paths)} images",
+-            end="\r", flush=True,
+-        )
++    if cache_path is not None:
++        cached = _load_embed_cache(cache_path)
++        embeddings = {p: v for p, v in cached.items() if p in set(unique_paths)}
++        if embeddings:
++            print(f"  resuming from cache: {len(embeddings)}/{len(unique_paths)} images already embedded")
++    pending = [p for p in unique_paths if p not in embeddings]
++
++    ckpt_f = open(cache_path, "a") if cache_path is not None else None
++    try:
++        for start in range(0, len(pending), batch_size):
++            batch_paths = pending[start : start + batch_size]
++            images = torch.stack([preprocess(Image.open(p).convert("RGB")) for p in batch_paths]).to(device)
++            with torch.no_grad():
++                emb = clip_model.encode_image(images)
++                emb = emb / emb.norm(dim=-1, keepdim=True)
++            for path, vec in zip(batch_paths, emb.cpu().numpy()):
++                embeddings[path] = vec
++                if ckpt_f is not None:
++                    ckpt_f.write(json.dumps({"path": path, "embedding": vec.tolist()}) + "\n")
++            if ckpt_f is not None:
++                ckpt_f.flush()
++                os.fsync(ckpt_f.fileno())
++            # flush=True -- see caption_images.py for why this matters under
++            # `!python -m ...` in a notebook cell (unflushed stdout looks frozen).
++            print(
++                f"  embedded {min(start + batch_size, len(pending))}/{len(pending)} pending "
++                f"({len(embeddings)}/{len(unique_paths)} total)",
++                end="\r", flush=True,
++            )
++    finally:
++        if ckpt_f is not None:
++            ckpt_f.close()
+     print()
+     return embeddings
+ 
+@@ -84,7 +127,8 @@ def main():
+ 
+     all_paths = [p["image_a_path"] for p in pairs] + [p["image_b_path"] for p in pairs]
+     print("embedding all images with CLIP...")
+-    embeddings = embed_images(all_paths, clip_model, preprocess, device)
++    embed_cache_path = pairs_path.parent / "_clip_embed_cache.jsonl"
++    embeddings = embed_images(all_paths, clip_model, preprocess, device, cache_path=embed_cache_path)
+ 
+     X, y = [], []
+     for p in pairs:
+@@ -179,6 +223,7 @@ def main():
+     with mlflow.start_run(run_name="verification_head"):
+         mlflow.log_params({"hidden_dim": vcfg["hidden_dim"], "epochs": vcfg["epochs"], "lr": vcfg["lr"]})
+         mlflow.log_metrics({"roc_auc": final_auc, "far": far, "frr": frr, "threshold": threshold})
++    embed_cache_path.unlink(missing_ok=True)  # clean completion -- avoid stale-resume confusion
+     return 0
+ 
+ 
+diff --git a/tests/test_embed_text_checkpoint.py b/tests/test_embed_text_checkpoint.py
+new file mode 100644
+index 0000000..c4b12fd
+--- /dev/null
++++ b/tests/test_embed_text_checkpoint.py
+@@ -0,0 +1,41 @@
++"""Tests for embed_text.py's resume-from-checkpoint logic -- same pattern and
++motivation as test_embed_image_checkpoint.py: a Colab disconnect partway
++through embedding a 10k-product catalog used to lose everything, since the
++old code did one monolithic model.encode() and only wrote to Chroma at the
++end. Full end-to-end resumability is validated on the real pipeline; this
++covers the pure checkpoint-file parsing logic."""
++import json
++import sys
++from pathlib import Path
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++
++from shoptalk.embeddings.embed_text import _load_checkpoint
++
++
++def test_load_checkpoint_missing_file_returns_empty(tmp_path):
++    assert _load_checkpoint(tmp_path / "nope.jsonl") == {}
++
++
++def test_load_checkpoint_parses_entries(tmp_path):
++    ckpt = tmp_path / "checkpoint.jsonl"
++    ckpt.write_text(
++        json.dumps({"item_id": "A1", "embedding": [0.1, 0.2]}) + "\n"
++        + json.dumps({"item_id": "A2", "embedding": [0.3, 0.4]}) + "\n"
++    )
++    assert _load_checkpoint(ckpt) == {"A1": [0.1, 0.2], "A2": [0.3, 0.4]}
++
++
++def test_load_checkpoint_skips_blank_lines(tmp_path):
++    ckpt = tmp_path / "checkpoint.jsonl"
++    ckpt.write_text(json.dumps({"item_id": "A1", "embedding": [1.0]}) + "\n\n\n")
++    assert _load_checkpoint(ckpt) == {"A1": [1.0]}
++
++
++def test_load_checkpoint_last_write_wins_for_duplicate_item_id(tmp_path):
++    ckpt = tmp_path / "checkpoint.jsonl"
++    ckpt.write_text(
++        json.dumps({"item_id": "A1", "embedding": [1.0]}) + "\n"
++        + json.dumps({"item_id": "A1", "embedding": [2.0]}) + "\n"
++    )
++    assert _load_checkpoint(ckpt) == {"A1": [2.0]}
+diff --git a/tests/test_finetune_resume.py b/tests/test_finetune_resume.py
+new file mode 100644
+index 0000000..eff5956
+--- /dev/null
++++ b/tests/test_finetune_resume.py
+@@ -0,0 +1,46 @@
++"""Tests for finetune_text.py's per-epoch resume state -- the third
++Colab-disconnect fix: a disconnect during epoch 3/3 of fine-tuning used to
++lose all training because the model was only saved after model.fit()
++finished every epoch. Covers the pure state-file logic (load/save/guards);
++actual one-epoch-at-a-time training is validated on the real pipeline."""
++import json
++import sys
++from pathlib import Path
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++
++from shoptalk.embeddings.finetune_text import _load_state, _save_state
++
++
++def test_load_state_missing_file_returns_zero(tmp_path):
++    assert _load_state(tmp_path / "_finetune_state.json") == 0
++
++
++def test_save_then_load_roundtrip(tmp_path):
++    state_path = tmp_path / "_finetune_state.json"
++    # the guard requires the saved model's config.json to exist
++    (tmp_path / "config.json").write_text("{}")
++    _save_state(state_path, completed_epochs=2, total_epochs=3)
++    assert _load_state(state_path) == 2
++
++
++def test_load_state_distrusts_state_without_saved_model(tmp_path):
++    """State file says 2 epochs done, but no model config.json -> half-written
++    save from a crash mid-save; must restart from scratch, not load garbage."""
++    state_path = tmp_path / "_finetune_state.json"
++    state_path.write_text(json.dumps({"completed_epochs": 2, "total_epochs": 3}))
++    assert _load_state(state_path) == 0
++
++
++def test_load_state_corrupt_json_returns_zero(tmp_path):
++    state_path = tmp_path / "_finetune_state.json"
++    state_path.write_text("{not json")
++    assert _load_state(state_path) == 0
++
++
++def test_save_state_is_atomic_no_tmp_left_behind(tmp_path):
++    state_path = tmp_path / "_finetune_state.json"
++    (tmp_path / "config.json").write_text("{}")
++    _save_state(state_path, 1, 3)
++    assert not state_path.with_suffix(".json.tmp").exists()
++    assert _load_state(state_path) == 1
+diff --git a/tests/test_verification_embed_cache.py b/tests/test_verification_embed_cache.py
+new file mode 100644
+index 0000000..6401b0c
+--- /dev/null
++++ b/tests/test_verification_embed_cache.py
+@@ -0,0 +1,38 @@
++"""Tests for train_verification.py's CLIP embedding cache -- the fourth
++Colab-disconnect fix: embedding ~2x pairs images was redone from zero on
++every retry. Covers the pure cache-file parsing logic."""
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++
++from shoptalk.verification.train_verification import _load_embed_cache
++
++
++def test_load_cache_missing_file_returns_empty(tmp_path):
++    assert _load_embed_cache(tmp_path / "nope.jsonl") == {}
++
++
++def test_load_cache_parses_entries_as_float32_arrays(tmp_path):
++    cache = tmp_path / "_clip_embed_cache.jsonl"
++    cache.write_text(
++        json.dumps({"path": "img/a.jpg", "embedding": [0.1, 0.2]}) + "\n"
++        + json.dumps({"path": "img/b.jpg", "embedding": [0.3, 0.4]}) + "\n"
++    )
++    result = _load_embed_cache(cache)
++    assert set(result) == {"img/a.jpg", "img/b.jpg"}
++    assert result["img/a.jpg"].dtype == np.float32
++    np.testing.assert_allclose(result["img/a.jpg"], [0.1, 0.2], rtol=1e-6)
++
++
++def test_load_cache_skips_blank_lines_and_last_write_wins(tmp_path):
++    cache = tmp_path / "_clip_embed_cache.jsonl"
++    cache.write_text(
++        json.dumps({"path": "img/a.jpg", "embedding": [1.0]}) + "\n\n"
++        + json.dumps({"path": "img/a.jpg", "embedding": [2.0]}) + "\n"
++    )
++    result = _load_embed_cache(cache)
++    np.testing.assert_allclose(result["img/a.jpg"], [2.0])
+-- 
+2.34.1
+
