@@ -11,6 +11,16 @@
 # (e.g. the EC2 G4dn.xlarge target in the design doc). Apple Silicon Macs
 # should run `ollama serve` natively instead (Docker Desktop can't pass
 # through Metal), pointing OLLAMA_BASE_URL at the host.
+#
+# IMPORTANT (macOS): Docker Desktop's default VM memory allocation (often
+# ~2-5GB) is NOT enough to hold both the api service's loaded models
+# (~2.7GB: bge, cross-encoder, CLIP, BLIP) and an 8B q4 LLM (~5.3GB)
+# simultaneously -- confirmed by hitting this for real: requests failed
+# with a dropped connection while Ollama timed out trying to load the
+# model, and even successful runs were ~7x slower than necessary from
+# memory pressure/swapping (see results/day6_latency_report.md). Before
+# running this stack, bump Docker Desktop -> Settings -> Resources ->
+# Memory to at least 12-14GB (on a 16GB+ Mac).
 services:
   ollama:
     image: ollama/ollama:latest

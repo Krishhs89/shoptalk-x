@@ -81,6 +81,35 @@ On a GPU, an 8B q4 model typically generates at 30-80+ tokens/sec (vs. an
 estimated ~0.5-1 token/sec observed here); a response of this length would
 be expected to land inside the design doc's <2.5s target.
 
+## Update: memory pressure was a bigger factor than raw CPU speed
+
+The 16.8-minute run above was captured while the containerized deployment's
+Docker Desktop VM was allocated only **4.8GB of memory** — barely enough to
+hold the API's own models (~2.7GB), leaving under 2GB for a model that needs
+~5.3GB to load. This caused severe memory pressure/swapping (and, in one
+case, an outright failed model load causing a dropped connection — see
+`docs/USAGE_WALKTHROUGH.md`'s Docker validation section).
+
+After raising the VM allocation to 13.6GB (still well under this Mac's 24GB,
+leaving headroom for macOS), the **exact same query, exact same model**
+completed in **148.8s (~2.5 min)** — a ~7x speedup with no hardware changes,
+purely from removing memory contention:
+
+| Stage | 4.8GB VM (memory-constrained) | 13.6GB VM (proper headroom) |
+|---|---|---|
+| Stage-1 ANN | 224ms | 359ms |
+| Rerank | 1,637ms | 6,413ms |
+| LLM generation | 1,008,506ms (~16.8 min) | 142,038ms (~2.4 min) |
+| **Total** | **~16.8 min** | **~2.5 min** |
+
+(Rerank got slower here, likely just run-to-run variance from other
+concurrent load at the time, not a memory effect — it's a fixed-size batch
+job, not something that benefits from more headroom the way model loading
+does.) **Takeaway: if you're running this stack in Docker on a Mac, check
+Docker Desktop's memory allocation before concluding the hardware itself is
+the bottleneck** — an under-provisioned VM can dominate the numbers far more
+than CPU-vs-GPU does.
+
 ## Optimization levers (design doc §4.2, for the real deployment)
 
 Documented but not benchmarked against each other in this environment
