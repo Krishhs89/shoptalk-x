@@ -1,60 +1,100 @@
-{"query_id": "q0000", "query": "affordable yellow toy figure from Amazon Brand - Jam and Honey", "template": "affordable_brand_color", "category": "TOY_FIGURE", "seed_item_id": "B081ZKCDZM", "positive_ids": ["B081ZKCDZM"]}
-{"query_id": "q0001", "query": "AmazonBasics home", "template": "brand", "category": "HOME", "seed_item_id": "B075D9TBDV", "positive_ids": ["B075D9TBDV", "B01FVUGQC4", "B075H3XBQ6"]}
-{"query_id": "q0002", "query": "black computer by AmazonBasics", "template": "brand_color", "category": "COMPUTER", "seed_item_id": "B06WWJJPRW", "positive_ids": ["B06WWJJPRW"]}
-{"query_id": "q0003", "query": "affordable multicolor skin cleaning wipe from Mama Bear", "template": "affordable_brand_color", "category": "SKIN_CLEANING_WIPE", "seed_item_id": "B07HB3PJ2F", "positive_ids": ["B07HB3PJ2F"]}
-{"query_id": "q0004", "query": "fineearring", "template": "plain", "category": "FINEEARRING", "seed_item_id": "B01LYTGSI8", "positive_ids": ["B07L747W5K", "B01LYTGSI8", "B00JNC6VKE"]}
-{"query_id": "q0005", "query": "find. boot", "template": "brand", "category": "BOOT", "seed_item_id": "B071H3NMH6", "positive_ids": ["B071H3NMH6", "B07PFXWVMG"]}
-{"query_id": "q0006", "query": "AmazonBasics flat screen display mount", "template": "brand", "category": "FLAT_SCREEN_DISPLAY_MOUNT", "seed_item_id": "B08H5Q7GDC", "positive_ids": ["B08H5Q7GDC"]}
-{"query_id": "q0007", "query": "AmazonBasics home bed and bath", "template": "brand", "category": "HOME_BED_AND_BATH", "seed_item_id": "B07HHRP44R", "positive_ids": ["B06WVBSRYX", "B07MFK4MMH", "B07HHRP44R"]}
-{"query_id": "q0008", "query": "affordable hemp stool seating from Ravenna Home", "template": "affordable_brand_color", "category": "STOOL_SEATING", "seed_item_id": "B07QGWMTJT", "positive_ids": ["B07QGWMTJT"]}
-{"query_id": "q0009", "query": "black handbag by Amazon Brand - Eden & Ivy", "template": "brand_color", "category": "HANDBAG", "seed_item_id": "B07XG345XR", "positive_ids": ["B07XG345XR"]}
-{"query_id": "q0010", "query": "affordable black saute fry pan from Amazon Brand - Solimo", "template": "affordable_brand_color", "category": "SAUTE_FRY_PAN", "seed_item_id": "B0123UKJVY", "positive_ids": ["B0123UKJVY"]}
-{"query_id": "q0011", "query": "table", "template": "plain", "category": "TABLE", "seed_item_id": "B075ZBVZPB", "positive_ids": ["B00GBVDK40", "B075ZBVZPB"]}
-{"query_id": "q0012", "query": "lamp", "template": "plain", "category": "LAMP", "seed_item_id": "B07DBHB6B5", "positive_ids": ["B07DBHB6B5"]}
-{"query_id": "q0013", "query": "navy carrying case or bag by AmazonBasics", "template": "brand_color", "category": "CARRYING_CASE_OR_BAG", "seed_item_id": "B07QR3YYVD", "positive_ids": ["B07QR3YYVD"]}
-{"query_id": "q0014", "query": "light fixture", "template": "plain", "category": "LIGHT_FIXTURE", "seed_item_id": "B07HK67M5L", "positive_ids": ["B082DNTKB6", "B07MHMGPLS", "B07HK67M5L"]}
-{"query_id": "q0015", "query": "home bed and bath under $150", "template": "price", "category": "HOME_BED_AND_BATH", "seed_item_id": "B06WVBSRYX", "positive_ids": ["B06WVBSRYX", "B07MFK4MMH", "B07FQZLKPN", "B07HHRP44R"]}
-{"query_id": "q0016", "query": "cielo blue stretch satin boot by The Fix", "template": "brand_color", "category": "BOOT", "seed_item_id": "B078FBC4ML", "positive_ids": ["B078FBC4ML"]}
-{"query_id": "q0017", "query": "black clothes hanger by AmazonBasics", "template": "brand_color", "category": "CLOTHES_HANGER", "seed_item_id": "B07VYTJPL5", "positive_ids": ["B07VYTJPL5"]}
-{"query_id": "q0018", "query": "dark blue tools by Amazon Brand - Solimo", "template": "brand_color", "category": "TOOLS", "seed_item_id": "B08G86RS3C", "positive_ids": ["B08G86RS3C"]}
-{"query_id": "q0019", "query": "The Fix sandal", "template": "brand", "category": "SANDAL", "seed_item_id": "B077159NR7", "positive_ids": ["B077159NR7"]}
-{"query_id": "q0020", "query": "AmazonBasics doorstop", "template": "brand", "category": "DOORSTOP", "seed_item_id": "B07PDHMHD6", "positive_ids": ["B07PDHMHD6"]}
-{"query_id": "q0021", "query": "shoes", "template": "plain", "category": "SHOES", "seed_item_id": "B07T79J87K", "positive_ids": ["B07RRWDJ9Y", "B07T93Q6V5", "B079V3HDLT", "B084MZ4HYV", "B074DZB96L", "B01MZ8FI86", "B07RW5HMZB", "B01MUG38UF"]}
-{"query_id": "q0022", "query": "keyboards", "template": "plain", "category": "KEYBOARDS", "seed_item_id": "B08HJRHBK1", "positive_ids": ["B08HJRHBK1"]}
-{"query_id": "q0023", "query": "black basket by Eono", "template": "brand_color", "category": "BASKET", "seed_item_id": "B07TNH6NVP", "positive_ids": ["B07TNH6NVP"]}
-{"query_id": "q0024", "query": "home lighting and lamps", "template": "plain", "category": "HOME_LIGHTING_AND_LAMPS", "seed_item_id": "B081NWZ341", "positive_ids": ["B07T5G19FG", "B081NWZ341"]}
-{"query_id": "q0025", "query": "AmazonCommercial cleaning agent", "template": "brand", "category": "CLEANING_AGENT", "seed_item_id": "B086R6KQGC", "positive_ids": ["B086R6KQGC"]}
-{"query_id": "q0026", "query": "teaching equipment", "template": "plain", "category": "TEACHING_EQUIPMENT", "seed_item_id": "B07THV5R29", "positive_ids": ["B07THV5R29"]}
-{"query_id": "q0027", "query": "health personal care", "template": "plain", "category": "HEALTH_PERSONAL_CARE", "seed_item_id": "B07YD54KM6", "positive_ids": ["B07G5VKMN3", "B07YD54KM6", "B07ST1YMH1", "B07YD5CZBK"]}
-{"query_id": "q0028", "query": "affordable yellow bucket from AmazonCommercial", "template": "affordable_brand_color", "category": "BUCKET", "seed_item_id": "B07TK3YY8H", "positive_ids": ["B07TK3YY8H"]}
-{"query_id": "q0029", "query": "candle", "template": "plain", "category": "CANDLE", "seed_item_id": "B075NFPCRQ", "positive_ids": ["B075NFPCRQ"]}
-{"query_id": "q0030", "query": "biss under $200", "template": "price", "category": "BISS", "seed_item_id": "B08D9QYFJS", "positive_ids": ["B08D9QYFJS"]}
-{"query_id": "q0031", "query": "Flavia handbag", "template": "brand", "category": "HANDBAG", "seed_item_id": "B07WR368NN", "positive_ids": ["B07WR368NN"]}
-{"query_id": "q0032", "query": "rug under $300", "template": "price", "category": "RUG", "seed_item_id": "B073F7GFKB", "positive_ids": ["B073F7GFKB"]}
-{"query_id": "q0033", "query": "home", "template": "plain", "category": "HOME", "seed_item_id": "B081FGJCC6", "positive_ids": ["B075D9TBDV", "B081FHWVXZ", "B000T2WY6W", "B073P5PZ5P", "B001719KM0", "B07JWJ775T", "B07NJQMTRB", "B01FVUGQC4"]}
-{"query_id": "q0034", "query": "black safe", "template": "color", "category": "SAFE", "seed_item_id": "B07T9MC9LC", "positive_ids": ["B07T9MC9LC"]}
-{"query_id": "q0035", "query": "finenecklacebraceletanklet under $150", "template": "price", "category": "FINENECKLACEBRACELETANKLET", "seed_item_id": "B00P2ADH44", "positive_ids": ["B0156G2UQ4", "B00P2ADH44"]}
-{"query_id": "q0036", "query": "Solimo laundry detergent", "template": "brand", "category": "LAUNDRY_DETERGENT", "seed_item_id": "B07FKFSDZX", "positive_ids": ["B07FKFSDZX"]}
-{"query_id": "q0037", "query": "mouthwash", "template": "plain", "category": "MOUTHWASH", "seed_item_id": "B07PSPRSMK", "positive_ids": ["B07PSPRSMK"]}
-{"query_id": "q0038", "query": "office products under $75", "template": "price", "category": "OFFICE_PRODUCTS", "seed_item_id": "B01M1C188Z", "positive_ids": ["B01M1C188Z"]}
-{"query_id": "q0039", "query": "accessory under $150", "template": "price", "category": "ACCESSORY", "seed_item_id": "B08GYR9PJC", "positive_ids": ["B08GYR9PJC", "B08F6VXS74", "B08438SJMD", "B08FD67QC2", "B08FMLJMHH", "B016APKQIO"]}
-{"query_id": "q0040", "query": "black necklace", "template": "color", "category": "NECKLACE", "seed_item_id": "B00VR99KFY", "positive_ids": ["B00VR99KFY"]}
-{"query_id": "q0041", "query": "365 Everyday Value coffee", "template": "brand", "category": "COFFEE", "seed_item_id": "B07GLDX2W5", "positive_ids": ["B07GLDX2W5"]}
-{"query_id": "q0042", "query": "AmazonBasics file folder", "template": "brand", "category": "FILE_FOLDER", "seed_item_id": "B086PTX48P", "positive_ids": ["B086PTX48P"]}
-{"query_id": "q0043", "query": "yellow chair", "template": "color", "category": "CHAIR", "seed_item_id": "B07K35ZXB6", "positive_ids": ["B07K35ZXB6"]}
-{"query_id": "q0044", "query": "black home by Amazon Brand - Solimo", "template": "brand_color", "category": "HOME", "seed_item_id": "B07YG9ZRBR", "positive_ids": ["B07NJQMTRB", "B07YG9ZRBR"]}
-{"query_id": "q0045", "query": "grey stool seating by Pioneer Square", "template": "brand_color", "category": "STOOL_SEATING", "seed_item_id": "B07GNCVKVN", "positive_ids": ["B07GNCVKVN"]}
-{"query_id": "q0046", "query": "wall art under $150", "template": "price", "category": "WALL_ART", "seed_item_id": "B075YLSBMR", "positive_ids": ["B075YLSBMR", "B073NZQR38"]}
-{"query_id": "q0047", "query": "white finenecklacebraceletanklet by Amazon Collection", "template": "brand_color", "category": "FINENECKLACEBRACELETANKLET", "seed_item_id": "B0156G2UQ4", "positive_ids": ["B0156G2UQ4"]}
-{"query_id": "q0048", "query": "bread under $200", "template": "price", "category": "BREAD", "seed_item_id": "B07KCSH2BH", "positive_ids": ["B07KCSH2BH"]}
-{"query_id": "q0049", "query": "offwhite salwar suit set", "template": "color", "category": "SALWAR_SUIT_SET", "seed_item_id": "B07GLTNHNQ", "positive_ids": ["B07GLTNHNQ"]}
-{"query_id": "q0050", "query": "fashionnecklacebraceletanklet", "template": "plain", "category": "FASHIONNECKLACEBRACELETANKLET", "seed_item_id": "B00MHO1N0S", "positive_ids": ["B00MHO1N0S"]}
-{"query_id": "q0051", "query": "others cellular phone case", "template": "color", "category": "CELLULAR_PHONE_CASE", "seed_item_id": "B07THRXJL7", "positive_ids": ["B07T22LSXW", "B07T9TMQKB", "B07T14V1ZG", "B07T9TN7VK", "B07TG3TW46", "B07TCWSWY4", "B07TF1B95F", "B07TG4VZV9"]}
-{"query_id": "q0052", "query": "find. sandal", "template": "brand", "category": "SANDAL", "seed_item_id": "B077X579KG", "positive_ids": ["B077X579KG"]}
-{"query_id": "q0053", "query": "affordable silver mirror leather sandal from 206 Collective", "template": "affordable_brand_color", "category": "SANDAL", "seed_item_id": "B078B2GXF9", "positive_ids": ["B078B2GXF9"]}
-{"query_id": "q0054", "query": "stool seating under $75", "template": "price", "category": "STOOL_SEATING", "seed_item_id": "B07DBF3V83", "positive_ids": ["B07GNCVKVN", "B07B7BRXCK", "B07DBF3V83"]}
-{"query_id": "q0055", "query": "finering under $100", "template": "price", "category": "FINERING", "seed_item_id": "B07HCN3MWK", "positive_ids": ["B01CFZHUIC", "B07SW4MYLT", "B014WC3CN8", "B07358TXKD", "B07HCN3MWK"]}
-{"query_id": "q0056", "query": "computer under $75", "template": "price", "category": "COMPUTER", "seed_item_id": "B07PZ8KKV9", "positive_ids": ["B07PZ8KKV9"]}
-{"query_id": "q0057", "query": "soft white light bulb by AmazonBasics", "template": "brand_color", "category": "LIGHT_BULB", "seed_item_id": "B07SXLRBRJ", "positive_ids": ["B07FVXNYVW", "B07SXLRBRJ"]}
-{"query_id": "q0058", "query": "sofa", "template": "plain", "category": "SOFA", "seed_item_id": "B07HZ1L353", "positive_ids": ["B07HZ1L353", "B07BWLJRCD", "B072PZVY6C", "B07PBZVP19", "B07CRLHXLL", "B075X4VM8W"]}
-{"query_id": "q0059", "query": "white bench", "template": "color", "category": "BENCH", "seed_item_id": "B07DBDZ4SG", "positive_ids": ["B07DBDZ4SG"]}
+{"query_id": "q0000", "query": "security electronics", "template": "plain", "category": "SECURITY_ELECTRONICS", "seed_item_id": "B07W42KQ3M", "positive_ids": ["B07W42KQ3M", "B085Y1KZ1G"]}
+{"query_id": "q0001", "query": "Solimo honey", "template": "brand", "category": "HONEY", "seed_item_id": "B07CVWD7NL", "positive_ids": ["B07CVW97KZ", "B07CVWD7NL"]}
+{"query_id": "q0002", "query": "chrome clothes hanger by AmazonBasics", "template": "brand_color", "category": "CLOTHES_HANGER", "seed_item_id": "B08B6CKK1R", "positive_ids": ["B08B6CKK1R"]}
+{"query_id": "q0003", "query": "fineearring", "template": "plain", "category": "FINEEARRING", "seed_item_id": "B07L747W5K", "positive_ids": ["B07L747W5K", "B01LYTGSI8", "B00JNC6VKE", "B01LYHZIY1", "B01LXITTRO", "B00UYIHAEC", "B01M5AGMDE", "B00JQFHS9Q"]}
+{"query_id": "q0004", "query": "fruit snack under $150", "template": "price", "category": "FRUIT_SNACK", "seed_item_id": "B08222YHKM", "positive_ids": ["B07H7MSJPT", "B08222YHKM"]}
+{"query_id": "q0005", "query": "Amazon Brand - Solimo kitchen", "template": "brand", "category": "KITCHEN", "seed_item_id": "B07P8ZW53N", "positive_ids": ["B07PBBW455", "B07P6R6R3F", "B07P82LZWZ", "B07PBBV3D2", "B07P6R6JYP", "B07P8ZW53N", "B071K5ZLL7", "B07P7W8PXQ"]}
+{"query_id": "q0006", "query": "Solimo herbal supplement", "template": "brand", "category": "HERBAL_SUPPLEMENT", "seed_item_id": "B083VBFGJG", "positive_ids": ["B083VBFGJG"]}
+{"query_id": "q0007", "query": "AmazonBasics computer input device", "template": "brand", "category": "COMPUTER_INPUT_DEVICE", "seed_item_id": "B01I55777K", "positive_ids": ["B07C5QCLYL", "B01I55777K"]}
+{"query_id": "q0008", "query": "affordable black power bank from AmazonBasics", "template": "affordable_brand_color", "category": "POWER_BANK", "seed_item_id": "B08443JQ7W", "positive_ids": ["B08443JQ7W"]}
+{"query_id": "q0009", "query": "Strathwood by Amazon.com wildlife feeder", "template": "brand", "category": "WILDLIFE_FEEDER", "seed_item_id": "B000WA0HJW", "positive_ids": ["B000W9Z1LW", "B000WA0HJW"]}
+{"query_id": "q0010", "query": "camcorder", "template": "plain", "category": "CAMCORDER", "seed_item_id": "B07S85CRGF", "positive_ids": ["B07S85CRGF"]}
+{"query_id": "q0011", "query": "grocery", "template": "plain", "category": "GROCERY", "seed_item_id": "B074VBLHYH", "positive_ids": ["B07BTPYZ8V", "B07DFRWQCR", "B072Q4FVMV", "B07BL6MFV7", "B077XL8VHN", "B079WWYFMC", "B074H5LYKN", "B07NR976YQ"]}
+{"query_id": "q0012", "query": "food preparation mold", "template": "plain", "category": "FOOD_PREPARATION_MOLD", "seed_item_id": "B07CN7B2H1", "positive_ids": ["B07GDKJVTN", "B07CN7B2H1", "B07GDSDSSD"]}
+{"query_id": "q0013", "query": "white writing board by AmazonBasics", "template": "brand_color", "category": "WRITING_BOARD", "seed_item_id": "B077TGBB72", "positive_ids": ["B077TGBB72"]}
+{"query_id": "q0014", "query": "earring", "template": "plain", "category": "EARRING", "seed_item_id": "B01CNMKZNE", "positive_ids": ["B01CNMKZNE", "B07HCLB4H9", "B07ZQFRM5R", "B07HCT83L7", "B07ZH1YZC9", "B01ISW5WYK", "B0046ZT55G", "B07HCT74VX"]}
+{"query_id": "q0015", "query": "black flatware by AmazonBasics", "template": "brand_color", "category": "FLATWARE", "seed_item_id": "B07Y611XRN", "positive_ids": ["B07Y611XRN"]}
+{"query_id": "q0016", "query": "clear badge holder by AmazonBasics", "template": "brand_color", "category": "BADGE_HOLDER", "seed_item_id": "B01DN8THN6", "positive_ids": ["B01DN8THN6"]}
+{"query_id": "q0017", "query": "green file folder by AmazonBasics", "template": "brand_color", "category": "FILE_FOLDER", "seed_item_id": "B07TJK1W3B", "positive_ids": ["B07TJK1W3B", "B07F45X594"]}
+{"query_id": "q0018", "query": "Amazon Brand - Solimo incense", "template": "brand", "category": "INCENSE", "seed_item_id": "B07RM4C64J", "positive_ids": ["B07RM4C64J", "B07RNL1XZZ", "B07RHTYWSG"]}
+{"query_id": "q0019", "query": "SOLIMO protein supplement powder", "template": "brand", "category": "PROTEIN_SUPPLEMENT_POWDER", "seed_item_id": "B07H3KDMNN", "positive_ids": ["B07H3KFQ4R", "B07H3GKDG7", "B07H3KDMNN"]}
+{"query_id": "q0020", "query": "noodle", "template": "plain", "category": "NOODLE", "seed_item_id": "B074MFTWL1", "positive_ids": ["B074MGFZ6Z", "B074MFTWL1"]}
+{"query_id": "q0021", "query": "suitcase", "template": "plain", "category": "SUITCASE", "seed_item_id": "B07HMF7BQ8", "positive_ids": ["B07C3S9564", "B07SZGBRS1", "B07GNQLHBG", "B07HGD8MFB", "B07P6PFFH8", "B07HMF7BQ8", "B07BL6BZFS", "B07GNVY6D7"]}
+{"query_id": "q0022", "query": "AmazonBasics pliers", "template": "brand", "category": "PLIERS", "seed_item_id": "B015X2NHOK", "positive_ids": ["B015X2NHOK"]}
+{"query_id": "q0023", "query": "hat", "template": "plain", "category": "HAT", "seed_item_id": "B08FDQSNHW", "positive_ids": ["B08BJY6H2W", "B07ZR2845B", "B079JC1WB5", "B08CV5Q65R", "B07WVXVT8F", "B0823W8YHT", "B08CV68Q3W", "B08DLMZJ1T"]}
+{"query_id": "q0024", "query": "Ravenna Home bench", "template": "brand", "category": "BENCH", "seed_item_id": "B07DBDZ4SG", "positive_ids": ["B07DBDZ4SG", "B07M6PKCQQ", "B07KR2KJKB"]}
+{"query_id": "q0025", "query": "affordable green toy figure from Jam and Honey", "template": "affordable_brand_color", "category": "TOY_FIGURE", "seed_item_id": "B081ZKW4SZ", "positive_ids": ["B081ZKW4SZ"]}
+{"query_id": "q0026", "query": "affordable green file folder from AmazonBasics", "template": "affordable_brand_color", "category": "FILE_FOLDER", "seed_item_id": "B07F45X594", "positive_ids": ["B07TJK1W3B", "B07F45X594"]}
+{"query_id": "q0027", "query": "health personal care", "template": "plain", "category": "HEALTH_PERSONAL_CARE", "seed_item_id": "B07YD4ZCRR", "positive_ids": ["B07G5VKMN3", "B07YD54KM6", "B07ST1YMH1", "B07YD5CZBK", "B073HMPC4C", "B07G5PK4LJ", "B074QP48QL", "B07J62C1K5"]}
+{"query_id": "q0028", "query": "electric fan", "template": "plain", "category": "ELECTRIC_FAN", "seed_item_id": "B08CBKMR51", "positive_ids": ["B07WC2GY5M", "B08CBKMR51", "B07VX8GV2G", "B07HKGHTC1", "B079Y58C4Q", "B082MY2MX3"]}
+{"query_id": "q0029", "query": "electric water boiler under $100", "template": "price", "category": "ELECTRIC_WATER_BOILER", "seed_item_id": "B087X76Z3W", "positive_ids": ["B087X76Z3W"]}
+{"query_id": "q0030", "query": "Stone & Beam home lighting and lamps", "template": "brand", "category": "HOME_LIGHTING_AND_LAMPS", "seed_item_id": "B07T5G19FG", "positive_ids": ["B07T5G19FG", "B07HKCRW9L", "B089QZJRP4", "B07HK3W6ZP"]}
+{"query_id": "q0031", "query": "nut butter under $150", "template": "price", "category": "NUT_BUTTER", "seed_item_id": "B074MHYRKV", "positive_ids": ["B074H6G8CH", "B074MHYRKV"]}
+{"query_id": "q0032", "query": "muscle roller", "template": "plain", "category": "MUSCLE_ROLLER", "seed_item_id": "B07BH1PSXL", "positive_ids": ["B07QH4VPM8", "B07BH1PSXL", "B00XM2MRGI", "B07QL3FCV1", "B07QSCMZR9", "B076142XF4", "B07N43V3JR"]}
+{"query_id": "q0033", "query": "home bed and bath under $50", "template": "price", "category": "HOME_BED_AND_BATH", "seed_item_id": "B07DNH84WX", "positive_ids": ["B07FQZLKPN", "B07RW9G746", "B00CB8COO4", "B07K8SS3HN", "B06Y5XWJBP", "B07KYTMZPG", "B083J9GX7M", "B07PGMSWSX"]}
+{"query_id": "q0034", "query": "black instrument parts and accessories by AmazonBasics", "template": "brand_color", "category": "INSTRUMENT_PARTS_AND_ACCESSORIES", "seed_item_id": "B07QW4YS6B", "positive_ids": ["B07QW4YS6B"]}
+{"query_id": "q0035", "query": "AmazonBasics bottle rack", "template": "brand", "category": "BOTTLE_RACK", "seed_item_id": "B07GFWLLGK", "positive_ids": ["B07GFWLLGK"]}
+{"query_id": "q0036", "query": "affordable black and red earmuff from AmazonBasics", "template": "affordable_brand_color", "category": "EARMUFF", "seed_item_id": "B07KCSXHJQ", "positive_ids": ["B07KCSXHJQ"]}
+{"query_id": "q0037", "query": "mechanical components under $75", "template": "price", "category": "MECHANICAL_COMPONENTS", "seed_item_id": "B07ZKMGQLN", "positive_ids": ["B07ZKMGQLN"]}
+{"query_id": "q0038", "query": "purple bracelet", "template": "color", "category": "BRACELET", "seed_item_id": "B0758LF87D", "positive_ids": ["B0758LF87D"]}
+{"query_id": "q0039", "query": "soft white light bulb", "template": "color", "category": "LIGHT_BULB", "seed_item_id": "B07Z471FTJ", "positive_ids": ["B07FVXNYVW", "B07SXLRBRJ", "B01MQJK2U3", "B07Y23FNVZ", "B084BPLJ6B", "B07Z471FTJ", "B07W91H828", "B07W68QZL7"]}
+{"query_id": "q0040", "query": "AmazonBasics bottle", "template": "brand", "category": "BOTTLE", "seed_item_id": "B06ZY6Q66G", "positive_ids": ["B01LXKWC9B", "B06ZY6Q66G"]}
+{"query_id": "q0041", "query": "Strathwood by Amazon.com wildlife feeder", "template": "brand", "category": "WILDLIFE_FEEDER", "seed_item_id": "B000W9Z1LW", "positive_ids": ["B000W9Z1LW", "B000WA0HJW"]}
+{"query_id": "q0042", "query": "baby product under $75", "template": "price", "category": "BABY_PRODUCT", "seed_item_id": "B07HCML1PC", "positive_ids": ["B0886QY5X8", "B07HL68BCT", "B084DVXGN5", "B0756WZVQX", "B07HCML1PC"]}
+{"query_id": "q0043", "query": "ash grey chair by Rivet", "template": "brand_color", "category": "CHAIR", "seed_item_id": "B075WXBZG4", "positive_ids": ["B075WXBZG4"]}
+{"query_id": "q0044", "query": "AmazonBasics major home appliances", "template": "brand", "category": "MAJOR_HOME_APPLIANCES", "seed_item_id": "B07W8J2982", "positive_ids": ["B07DPQTK31", "B07W8J2982", "B07W4KZKGX", "B07ZP6W8BS", "B07VXF154S", "B07W1GBB9F"]}
+{"query_id": "q0045", "query": "sauce under $50", "template": "price", "category": "SAUCE", "seed_item_id": "B074MH3FM1", "positive_ids": ["B07H5RX1H6", "B074MH3FM1", "B07KQVX9X8", "B074H7K3KN"]}
+{"query_id": "q0046", "query": "AmazonBasics office electronics", "template": "brand", "category": "OFFICE_ELECTRONICS", "seed_item_id": "B07Z4FGN78", "positive_ids": ["B01NAJ9QWT", "B01MQW3BEK", "B07Z4FGN78"]}
+{"query_id": "q0047", "query": "black screen protector", "template": "color", "category": "SCREEN_PROTECTOR", "seed_item_id": "B07VRBWLVM", "positive_ids": ["B07VRBX3FP", "B07PB4QWJ4", "B07NKZ77HN", "B07VRBWLVM", "B07P8ZR62X", "B0851FG8DN"]}
+{"query_id": "q0048", "query": "matte clear label", "template": "color", "category": "LABEL", "seed_item_id": "B07X51W2RH", "positive_ids": ["B07X51W2RH"]}
+{"query_id": "q0049", "query": "janitorial supply", "template": "plain", "category": "JANITORIAL_SUPPLY", "seed_item_id": "B07DC9SVK3", "positive_ids": ["B07NLD81SF", "B07NQMJRY5", "B07PW8ZWWR", "B07PVC2VVB", "B075HJ9TJM", "B07V5CMF6G", "B07DC4S1J9", "B072R4W7KC"]}
+{"query_id": "q0050", "query": "black lightning accessory", "template": "color", "category": "ACCESSORY", "seed_item_id": "B08FMLJMHH", "positive_ids": ["B08FMLJMHH"]}
+{"query_id": "q0051", "query": "Amazon Brand - Solimo nut butter", "template": "brand", "category": "NUT_BUTTER", "seed_item_id": "B07KZ5LH3H", "positive_ids": ["B07KZ5LH3H"]}
+{"query_id": "q0052", "query": "affordable copper instrument parts and accessories from AmazonBasics", "template": "affordable_brand_color", "category": "INSTRUMENT_PARTS_AND_ACCESSORIES", "seed_item_id": "B07TDMZHRM", "positive_ids": ["B07TDMZHRM"]}
+{"query_id": "q0053", "query": "headboard under $100", "template": "price", "category": "HEADBOARD", "seed_item_id": "B07QBQF7NP", "positive_ids": ["B07MM5DHSC", "B07MCCRNLV", "B07QBQF7NP", "B075QK52FF", "B07QGWNM2Q", "B07B4W5TNB", "B075QL3X3L", "B07B4YXNR3"]}
+{"query_id": "q0054", "query": "wireless accessory", "template": "plain", "category": "WIRELESS_ACCESSORY", "seed_item_id": "B0176XCD1W", "positive_ids": ["B0176XCD1W", "B00LRK8HJ8", "B00511PTWM", "B082Y9P7ZL", "B0176XK792", "B075XV92NT", "B0753QCJ84", "B075XV4CFN"]}
+{"query_id": "q0055", "query": "black cargo strap by AmazonBasics", "template": "brand_color", "category": "CARGO_STRAP", "seed_item_id": "B07ZL115BP", "positive_ids": ["B07ZL115BP"]}
+{"query_id": "q0056", "query": "phone accessory", "template": "plain", "category": "PHONE_ACCESSORY", "seed_item_id": "B07YSQNVZ4", "positive_ids": ["B07YSQNVZ4", "B0093VGUFG"]}
+{"query_id": "q0057", "query": "orange bottle by Amazon Brand - Solimo", "template": "brand_color", "category": "BOTTLE", "seed_item_id": "B072WX12JW", "positive_ids": ["B072WX12JW"]}
+{"query_id": "q0058", "query": "storage hook", "template": "plain", "category": "STORAGE_HOOK", "seed_item_id": "B07L35XSX2", "positive_ids": ["B083TB8DZP", "B07NKX2BRD", "B07PZN9BF4", "B073Q5L969", "B07XT5PTLJ", "B07FFXWKFS", "B07PYJD14Z", "B01N6CJ32X"]}
+{"query_id": "q0059", "query": "maroon with pink piping bean bag chair", "template": "color", "category": "BEAN_BAG_CHAIR", "seed_item_id": "B078J7HR4N", "positive_ids": ["B078J95D6P", "B078J7HR4N"]}
+{"query_id": "q0060", "query": "affordable silver finenecklacebraceletanklet from Amazon Collection", "template": "affordable_brand_color", "category": "FINENECKLACEBRACELETANKLET", "seed_item_id": "B005DJAIFK", "positive_ids": ["B014T171J8", "B005DJAIFK", "B00N1PDESQ", "B00CIOBTCY", "B00CJ5KUYA", "B005DJADBE", "B00E0HFR3Y", "B000PAO48O"]}
+{"query_id": "q0061", "query": "drink flavored", "template": "plain", "category": "DRINK_FLAVORED", "seed_item_id": "B074VDW72Q", "positive_ids": ["B074VDW72Q"]}
+{"query_id": "q0062", "query": "black video game accessories", "template": "color", "category": "VIDEO_GAME_ACCESSORIES", "seed_item_id": "B07YBBSY68", "positive_ids": ["B07348JQ3L", "B07YBBSY68"]}
+{"query_id": "q0063", "query": "vase", "template": "plain", "category": "VASE", "seed_item_id": "B075HXPFTG", "positive_ids": ["B075HWDT12", "B078JGHZT3", "B07QD6ZV9Q", "B078JGLJMQ", "B075HXPFTG"]}
+{"query_id": "q0064", "query": "Amazon Collection finering", "template": "brand", "category": "FINERING", "seed_item_id": "B00MPKYZBI", "positive_ids": ["B01CFZHUIC", "B07SW4MYLT", "B00BGNB9CS", "B014WC3CN8", "B07358TXKD", "B0753M8VJ8", "B012SZYWP8", "B07SX984FL"]}
+{"query_id": "q0065", "query": "affordable grey exercise mat from AmazonBasics", "template": "affordable_brand_color", "category": "EXERCISE_MAT", "seed_item_id": "B0719BBFP2", "positive_ids": ["B0719BBFP2"]}
+{"query_id": "q0066", "query": "fountain under $150", "template": "price", "category": "FOUNTAIN", "seed_item_id": "B07227RQJ9", "positive_ids": ["B07227RQJ9"]}
+{"query_id": "q0067", "query": "sundried velvet bench by Rivet", "template": "brand_color", "category": "BENCH", "seed_item_id": "B073G7BVBP", "positive_ids": ["B073G7BVBP"]}
+{"query_id": "q0068", "query": "vegetable", "template": "plain", "category": "VEGETABLE", "seed_item_id": "B08331ZYB2", "positive_ids": ["B07WJGM4NB", "B074M9NTBN", "B074J6TF4Q", "B08332H46S", "B08331ZYB2"]}
+{"query_id": "q0069", "query": "Solimo pet supplies", "template": "brand", "category": "PET_SUPPLIES", "seed_item_id": "B07F2QS1WJ", "positive_ids": ["B07F2QS1WJ"]}
+{"query_id": "q0070", "query": "major home appliances under $150", "template": "price", "category": "MAJOR_HOME_APPLIANCES", "seed_item_id": "B07DPQTK31", "positive_ids": ["B07DPQTK31", "B07W8J2982", "B07ZP6W8BS"]}
+{"query_id": "q0071", "query": "blue safety supply by AmazonBasics", "template": "brand_color", "category": "SAFETY_SUPPLY", "seed_item_id": "B07GFL9HD6", "positive_ids": ["B07GFL9HD6"]}
+{"query_id": "q0072", "query": "finering under $150", "template": "price", "category": "FINERING", "seed_item_id": "B07HCM4TM8", "positive_ids": ["B07HCM4TM8", "B01CFZHUIC", "B07SW4MYLT", "B00BGNB9CS", "B014WC3CN8", "B07358TXKD", "B07HCY6L6V", "B07HCN3MWK"]}
+{"query_id": "q0073", "query": "365 Everyday Value mineral supplement", "template": "brand", "category": "MINERAL_SUPPLEMENT", "seed_item_id": "B074KHWVGV", "positive_ids": ["B074KLCGC7", "B074KHWVGV"]}
+{"query_id": "q0074", "query": "incense under $75", "template": "price", "category": "INCENSE", "seed_item_id": "B07RHTYWSG", "positive_ids": ["B07RHTYWSG"]}
+{"query_id": "q0075", "query": "black luggage", "template": "color", "category": "LUGGAGE", "seed_item_id": "B07C226XG1", "positive_ids": ["B07FQMN9VN", "B07C226XG1", "B07CNZH1PY", "B07BY8K4NV"]}
+{"query_id": "q0076", "query": "razor blade cartridge under $20", "template": "price", "category": "RAZOR_BLADE_CARTRIDGE", "seed_item_id": "B07BC9XZZ6", "positive_ids": ["B07BC9XZZ6", "B07BCB2FN4"]}
+{"query_id": "q0077", "query": "boot", "template": "plain", "category": "BOOT", "seed_item_id": "B07Z9KYF2V", "positive_ids": ["B078FBC4ML", "B071H3NMH6", "B07PFXWVMG", "B07R47ZMY7", "B077PLWQLK", "B073V5N94F", "B072MTH212", "B07D4587LP"]}
+{"query_id": "q0078", "query": "earring", "template": "plain", "category": "EARRING", "seed_item_id": "B01ISW5WYK", "positive_ids": ["B01CNMKZNE", "B07HCLB4H9", "B07ZQFRM5R", "B07HCT83L7", "B07ZH1YZC9", "B01ISW5WYK", "B0046ZT55G", "B07HCT74VX"]}
+{"query_id": "q0079", "query": "365 Everyday Value juice and juice drink", "template": "brand", "category": "JUICE_AND_JUICE_DRINK", "seed_item_id": "B074H6QSXS", "positive_ids": ["B074H6QSXS"]}
+{"query_id": "q0080", "query": "crystal red fashionnecklacebraceletanklet", "template": "color", "category": "FASHIONNECKLACEBRACELETANKLET", "seed_item_id": "B01HTF8Y5Q", "positive_ids": ["B01HTF8Y5Q"]}
+{"query_id": "q0081", "query": "black bed frame", "template": "color", "category": "BED_FRAME", "seed_item_id": "B00AZ0MS8C", "positive_ids": ["B07W11CVFJ", "B07QSLPKWM", "B00AZ0MS8C", "B07Y2CNMZN"]}
+{"query_id": "q0082", "query": "AmazonBasics storage hook", "template": "brand", "category": "STORAGE_HOOK", "seed_item_id": "B07FFXWKFS", "positive_ids": ["B07NKX2BRD", "B07PZN9BF4", "B073Q5L969", "B07XT5PTLJ", "B07FFXWKFS", "B07PYJD14Z", "B01N6CJ32X", "B01MTWBS64"]}
+{"query_id": "q0083", "query": "affordable multicolor skin cleaning wipe from Mama Bear", "template": "affordable_brand_color", "category": "SKIN_CLEANING_WIPE", "seed_item_id": "B07HB3PJ2F", "positive_ids": ["B07HB3PJ2F", "B07RK4BVVG", "B07G49K5TZ", "B07RL83812", "B07H9F3WYB"]}
+{"query_id": "q0084", "query": "grey battery", "template": "color", "category": "BATTERY", "seed_item_id": "B07KWYGTC6", "positive_ids": ["B07KWYGTC6"]}
+{"query_id": "q0085", "query": "affordable bluehaze outdoor living from Strathwood by Amazon.com", "template": "affordable_brand_color", "category": "OUTDOOR_LIVING", "seed_item_id": "B000KBJIKM", "positive_ids": ["B000KBJIKM"]}
+{"query_id": "q0086", "query": "affordable black video game accessories from AmazonBasics", "template": "affordable_brand_color", "category": "VIDEO_GAME_ACCESSORIES", "seed_item_id": "B07348JQ3L", "positive_ids": ["B07348JQ3L", "B07YBBSY68"]}
+{"query_id": "q0087", "query": "mouthwash", "template": "plain", "category": "MOUTHWASH", "seed_item_id": "B07PQHLKGF", "positive_ids": ["B07PSPRSMK", "B07PQHLKGF"]}
+{"query_id": "q0088", "query": "Wickedly Prime tea", "template": "brand", "category": "TEA", "seed_item_id": "B01N4EESQS", "positive_ids": ["B01N4EESQS"]}
+{"query_id": "q0089", "query": "abis lawn and garden", "template": "plain", "category": "ABIS_LAWN_AND_GARDEN", "seed_item_id": "B07VYKZFVF", "positive_ids": ["B01NCZOGNL", "B07VYKZFVF", "B07VWH2B8Y", "B07H278SGG", "B07H28TYSP"]}
+{"query_id": "q0090", "query": "ring under $100", "template": "price", "category": "RING", "seed_item_id": "B07HFWK673", "positive_ids": ["B07HFVP8K8", "B07HFX3LWJ", "B07HFWBRL7", "B01IT0PZ6Q", "B07HFXFTKY", "B07HFVVDNC", "B07HFSYHY4", "B07HFWK673"]}
+{"query_id": "q0091", "query": "artificial plant", "template": "plain", "category": "ARTIFICIAL_PLANT", "seed_item_id": "B07B8PXSGV", "positive_ids": ["B07B8PXSGV"]}
+{"query_id": "q0092", "query": "affordable dove sofa from Stone & Beam", "template": "affordable_brand_color", "category": "SOFA", "seed_item_id": "B07HZ1L353", "positive_ids": ["B07HZ1L353"]}
+{"query_id": "q0093", "query": "AmazonBasics wrench", "template": "brand", "category": "WRENCH", "seed_item_id": "B07SC6GG86", "positive_ids": ["B07ST25WDG", "B07W4KXHFW", "B07SC6GG86"]}
+{"query_id": "q0094", "query": "AmazonBasics camera tripod", "template": "brand", "category": "CAMERA_TRIPOD", "seed_item_id": "B00FAYL1YU", "positive_ids": ["B00FAYL1YU", "B07GXKPRTC"]}
+{"query_id": "q0095", "query": "herb under $150", "template": "price", "category": "HERB", "seed_item_id": "B0754HKQZ8", "positive_ids": ["B075M8YKH3", "B075M4K9TL", "B07H32LJMP", "B075MBSBRN", "B07BXWC1QT", "B07VYPBMWR", "B07ZDMP3RX", "B07R19S71Y"]}
+{"query_id": "q0096", "query": "sweatband under $20", "template": "price", "category": "SWEATBAND", "seed_item_id": "B08FMJ24PX", "positive_ids": ["B08FMJ24PX"]}
+{"query_id": "q0097", "query": "silver food slicer", "template": "color", "category": "FOOD_SLICER", "seed_item_id": "B07P96JH6V", "positive_ids": ["B07P96JH6V"]}
+{"query_id": "q0098", "query": "ce carrying case or bag", "template": "plain", "category": "CE_CARRYING_CASE_OR_BAG", "seed_item_id": "B07XLS8Z2Z", "positive_ids": ["B07XLS8Z2Z"]}
+{"query_id": "q0099", "query": "dairy based cream", "template": "plain", "category": "DAIRY_BASED_CREAM", "seed_item_id": "B07FW6Y4Y4", "positive_ids": ["B07DGVCKY6", "B07FW6Y4Y4"]}

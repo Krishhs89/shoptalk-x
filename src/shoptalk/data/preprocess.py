@@ -97,6 +97,24 @@ def synthetic_price(item_id: str, category: str) -> float:
     return round(low + frac * (high - low), 2)
 
 
+def drop_duplicate_item_ids(df: pd.DataFrame) -> tuple:
+    """The same item_id can appear more than once across ABO's listing shards
+    -- e.g. B074H65ZYT shows up as both "365 Everyday Value, Havarti
+    Slices..." and "...Havarti Cheese, Slices..." -- two listing entries for
+    one ASIN. random.sample() in download_abo.py doesn't dedupe (it samples
+    over raw listing entries, not distinct item_ids), so this must be
+    enforced here, once, rather than in every downstream consumer that
+    assumes item_id is a unique key (Chroma's collection.add(ids=...)
+    crashes with DuplicateIDError otherwise -- caught for real at 10k-product
+    Colab scale, never seen at the 500-product local smoke-test scale where
+    the odds of sampling the same item_id twice are much lower). Keeps the
+    first occurrence in input order (deterministic given the fixed sample
+    seed). Returns (deduped_df, duplicate_row_count)."""
+    before = len(df)
+    deduped = df.drop_duplicates(subset="item_id", keep="first").reset_index(drop=True)
+    return deduped, before - len(deduped)
+
+
 def build_record(obj: dict, images_dir: Path) -> dict:
     item_id = obj["item_id"]
     item_name = _first_english(obj.get("item_name", []))
@@ -164,6 +182,8 @@ def main():
             records.append(build_record(obj, images_dir))
 
     df = pd.DataFrame(records)
+    df, duplicate_count = drop_duplicate_item_ids(df)
+
     # drop any row that ended up with no usable name/description after cleaning
     before = len(df)
     df = df[(df["item_name"] != "") | (df["description"] != "")].reset_index(drop=True)
@@ -174,7 +194,8 @@ def main():
     df.to_parquet(out_parquet, index=False)
     df.to_csv(out_csv, index=False)
 
-    print(f"processed {len(df)} products ({dropped} dropped for empty name+description)")
+    print(f"processed {len(df)} products ({dropped} dropped for empty name+description, "
+          f"{duplicate_count} dropped as duplicate item_ids)")
     print(f"  images available: {df['image_available'].sum()} / {len(df)}")
     print(f"  categories: {df['category'].nunique()}")
     print(f"  wrote {out_parquet}")
