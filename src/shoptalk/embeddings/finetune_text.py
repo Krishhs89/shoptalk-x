@@ -30,10 +30,38 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import torch
 from sentence_transformers import InputExample, SentenceTransformer, losses
 from torch.utils.data import DataLoader
 
 from shoptalk.config import load_config
+
+# Set here (module level, after imports) rather than before the imports
+# above -- these are read lazily by wandb/tokenizers/torch when actually
+# used (model construction, .fit()), not by transformers'/sentence_
+# transformers' own imports, so there's no need to set them before those
+# imports run (which would also trip ruff's import-order check). They just
+# need to be set before main() constructs a model or calls .fit(), which
+# this satisfies.
+#
+# WANDB_DISABLED/WANDB_MODE: sentence_transformers' .fit() wraps HuggingFace's
+# Trainer, which auto-detects installed integrations and defaults to
+# reporting to all of them. wandb is installed (via requirements/eval.txt)
+# but never logged in, so the first .fit() call means an interactive
+# "(1) Create a W&B account (2) Use an existing account (3) Don't visualize"
+# prompt -- caught for real on a Colab run: it hung the cell waiting for
+# input nobody was there to give, indistinguishable from a stalled/frozen
+# step from the outside. This is an unattended batch pipeline; it must never
+# block on stdin.
+#
+# PYTORCH_CUDA_ALLOC_CONF: directly suggested by a real CUDA OOM caught on a
+# T4 (14.55/14.56 GiB in use, failed to allocate 34 more MiB) -- reduces
+# allocator fragmentation, which can be the difference between an allocation
+# succeeding or not when memory is this tight.
+os.environ.setdefault("WANDB_DISABLED", "true")
+os.environ.setdefault("WANDB_MODE", "disabled")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 
 def mine_hard_negative(pos_id: str, category: str, exclude_ids: set, products_df: pd.DataFrame, rng: random.Random):
@@ -133,6 +161,12 @@ def main():
     train_loss = losses.TripletLoss(model=model)
 
     for epoch in range(completed, args.epochs):
+        # Between epochs in the same process -- cheap and harmless if there's
+        # nothing to reclaim, but real memory was this tight on a T4 (see the
+        # PYTORCH_CUDA_ALLOC_CONF note above): 14.55/14.56 GiB in use.
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         # warmup only at the very start of a fresh run -- a resumed model is
         # already past the unstable early-LR phase
         warmup = max(1, int(0.1 * len(train_dataloader))) if epoch == 0 else 0
