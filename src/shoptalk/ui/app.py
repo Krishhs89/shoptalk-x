@@ -51,6 +51,21 @@ def load_catalog_preview():
         return None
 
 
+def escape_markdown_dollars(text: str) -> str:
+    """st.markdown() treats paired $...$ as inline LaTeX (Streamlit's math
+    support) -- fine for the isolated single-$ prices in render_product_hits,
+    but this assistant's free-text answers routinely mention two or more
+    prices in one message (e.g. "Option A at $20 and Option B at $30"), and
+    the whole span between the two $ signs then gets parsed as a LaTeX
+    formula instead of shown as text. Escaping $ preserves any other
+    markdown the LLM used (bold, lists) while preventing that."""
+    return text.replace("$", "\\$")
+
+
+def render_llm_text(text: str):
+    st.markdown(escape_markdown_dollars(text))
+
+
 def render_product_hits(hits: list):
     if not hits:
         st.caption("No products retrieved.")
@@ -98,10 +113,17 @@ def chat_search_tab():
         st.session_state.history = []  # list of {"role", "content", "hits"?, "request_id"?}
     if "session_id" not in st.session_state:
         st.session_state.session_id = None
+    if "uploader_key" not in st.session_state:
+        # st.file_uploader/st.audio_input retain their value across reruns
+        # until their `key` changes -- without this, uploading one photo
+        # would silently keep re-searching that same stale photo on every
+        # later turn, even after the user switched back to typing plain
+        # text questions. Bumped after every successful search below.
+        st.session_state.uploader_key = 0
 
     for turn in st.session_state.history:
         with st.chat_message(turn["role"]):
-            st.markdown(turn["content"])
+            render_llm_text(turn["content"])
             if turn.get("hits"):
                 render_product_hits(turn["hits"])
             if turn.get("request_id"):
@@ -114,11 +136,16 @@ def chat_search_tab():
     st.divider()
     col_img, col_voice = st.columns(2)
     with col_img:
-        uploaded_image = st.file_uploader("Search by photo (optional)", type=["jpg", "jpeg", "png"])
+        uploaded_image = st.file_uploader(
+            "Search by photo (optional)", type=["jpg", "jpeg", "png"],
+            key=f"image_uploader_{st.session_state.uploader_key}",
+        )
         if uploaded_image:
             st.image(uploaded_image, caption="query photo", width=200)
     with col_voice:
-        voice_clip = st.audio_input("Or ask by voice (optional)")
+        voice_clip = st.audio_input(
+            "Or ask by voice (optional)", key=f"voice_uploader_{st.session_state.uploader_key}"
+        )
 
     query = st.chat_input("Ask ShopTalk-X for a product...")
 
@@ -137,7 +164,7 @@ def chat_search_tab():
 
     st.session_state.history.append({"role": "user", "content": query})
     with st.chat_message("user"):
-        st.markdown(query)
+        render_llm_text(query)
 
     with st.chat_message("assistant"):
         spinner_msg = (
@@ -166,7 +193,7 @@ def chat_search_tab():
                 return
 
         st.session_state.session_id = data["session_id"]
-        st.markdown(data["answer"])
+        render_llm_text(data["answer"])
         render_product_hits(data["hits"])
         latency = data["latency"]
         st.caption(
@@ -177,6 +204,7 @@ def chat_search_tab():
     st.session_state.history.append(
         {"role": "assistant", "content": data["answer"], "hits": data["hits"], "request_id": data["request_id"]}
     )
+    st.session_state.uploader_key += 1  # reset photo/voice widgets so the next turn starts clean
     st.rerun()
 
 
@@ -232,6 +260,7 @@ def main():
         if st.button("New conversation"):
             st.session_state.history = []
             st.session_state.session_id = None
+            st.session_state.uploader_key = st.session_state.get("uploader_key", 0) + 1
             st.rerun()
 
     tab1, tab2 = st.tabs(["Chat search", "Verify order"])
