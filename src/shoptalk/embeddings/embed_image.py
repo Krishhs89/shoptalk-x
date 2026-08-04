@@ -74,7 +74,9 @@ def main():
 
         all_embeddings.append(embeddings.cpu())
         valid_rows.extend(kept)
-        print(f"  {min(start + batch_size, len(df))}/{len(df)} embedded", end="\r")
+        # flush=True -- see caption_images.py for why this matters under
+        # `!python -m ...` in a notebook cell (unflushed stdout looks frozen).
+        print(f"  {min(start + batch_size, len(df))}/{len(df)} embedded", end="\r", flush=True)
 
     print()
     embeddings = torch.cat(all_embeddings).numpy()

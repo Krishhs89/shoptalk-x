@@ -106,7 +106,12 @@ def main():
                 batch_captions[local_i] = caption
 
         captions[start : start + len(batch)] = batch_captions
-        print(f"  {min(start + batch_size, len(rows))}/{len(rows)} captioned", end="\r")
+        # flush=True matters here: under `!python -m ...` in a notebook cell,
+        # stdout isn't a TTY, so Python fully block-buffers it -- without an
+        # explicit flush, this line sits invisible for a long stretch (until
+        # the OS pipe buffer fills or the process exits) rather than updating
+        # live, making a genuinely-progressing run look frozen.
+        print(f"  {min(start + batch_size, len(rows))}/{len(rows)} captioned", end="\r", flush=True)
 
     print()
     df["caption"] = captions

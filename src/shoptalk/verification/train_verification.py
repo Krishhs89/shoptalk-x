@@ -45,7 +45,12 @@ def embed_images(paths: list, clip_model, preprocess, device: str, batch_size: i
             emb = emb / emb.norm(dim=-1, keepdim=True)
         for path, vec in zip(batch_paths, emb.cpu().numpy()):
             embeddings[path] = vec
-        print(f"  embedded {min(start + batch_size, len(unique_paths))}/{len(unique_paths)} images", end="\r")
+        # flush=True -- see caption_images.py for why this matters under
+        # `!python -m ...` in a notebook cell (unflushed stdout looks frozen).
+        print(
+            f"  embedded {min(start + batch_size, len(unique_paths))}/{len(unique_paths)} images",
+            end="\r", flush=True,
+        )
     print()
     return embeddings
 
