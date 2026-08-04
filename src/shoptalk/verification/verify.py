@@ -12,6 +12,7 @@ Usage:
 """
 import argparse
 import sys
+from pathlib import Path
 
 import open_clip
 import pandas as pd
@@ -78,7 +79,15 @@ def verify_photo(image_path: str, order_item_id: str, cfg: dict = None) -> dict:
     row = products_df[products_df["item_id"] == order_item_id]
     if row.empty or not row.iloc[0]["image_available"]:
         raise ValueError(f"no catalog image available for order_item_id={order_item_id!r}")
-    catalog_image_path = row.iloc[0]["image_path"]
+    # Rebuild the path from image_id + THIS process's raw_dir rather than
+    # trusting the stored `image_path` column: that column is an absolute
+    # path baked in wherever preprocess.py last ran (e.g. the host Mac), and
+    # this endpoint can be serving from a different filesystem root (a
+    # Docker container mounting the same data/ at a different absolute
+    # path -- caught via live testing: FileNotFoundError on the container's
+    # /verify calls even though the file was right there under a different
+    # prefix).
+    catalog_image_path = str(Path(cfg["data"]["raw_dir"]) / "images" / f"{row.iloc[0]['image_id']}.jpg")
 
     clip_model, preprocess, device = _get_clip(vcfg)
     received_emb = _embed(image_path, clip_model, preprocess, device)

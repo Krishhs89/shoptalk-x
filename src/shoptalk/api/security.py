@@ -10,7 +10,12 @@ from collections import defaultdict, deque
 
 from fastapi import Header, HTTPException, Request
 
-API_KEY = os.environ.get("SHOPTALK_API_KEY")  # unset -> auth disabled (local dev)
+# `or None` matters: docker-compose's `${SHOPTALK_API_KEY:-}` substitution sets
+# this to an empty string (not unset) when the host has no such env var, and
+# os.environ.get() returns "" (not None) for a set-but-empty var -- without
+# the `or None`, `"" is None` is False, so auth would wrongly enforce an
+# empty-string key that no request could ever match. Unset OR empty -> disabled.
+API_KEY = os.environ.get("SHOPTALK_API_KEY") or None
 RATE_LIMIT_PER_MINUTE = int(os.environ.get("SHOPTALK_RATE_LIMIT_PER_MINUTE", "60"))
 MAX_IMAGE_BYTES = int(os.environ.get("SHOPTALK_MAX_IMAGE_BYTES", str(10 * 1024 * 1024)))  # 10 MB
 

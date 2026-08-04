@@ -67,7 +67,7 @@ alongside it, plus the offline data/MLOps pipeline underneath.
 
 ## 10. MLOps loop
 - MLflow tracking + model registry (show a screenshot or live
-  `localhost:5000` if presenting live).
+  `localhost:5001` if presenting live).
 - **Show `results/day6_drift_report.md`**: drift correctly detected (7/7
   columns) on a deliberately shifted simulated query set — proves the
   monitoring actually works, not just that code exists.

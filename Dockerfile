@@ -3,8 +3,14 @@
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# requirements.txt is an aggregator (-r requirements/*.txt) covering every
+# component including UI/EDA/dev tools this service doesn't need; installing
+# just requirements/serving.txt's chain (serving -> eval -> embeddings ->
+# data) keeps the image leaner. Its `-r` references are relative to the
+# requirements/ directory, so that whole directory has to be copied in too,
+# not just the top-level requirements.txt.
+COPY requirements/ requirements/
+RUN pip install --no-cache-dir --user -r requirements/serving.txt
 
 FROM python:3.11-slim
 

@@ -41,7 +41,9 @@ services:
     restart: unless-stopped
 
   ui:
-    build: ./docker/ui
+    build:
+      context: .
+      dockerfile: docker/ui/Dockerfile
     ports:
       - "8501:8501"
     environment:
@@ -56,7 +58,11 @@ services:
   mlflow:
     build: ./docker/mlflow
     ports:
-      - "5000:5000"
+      # host 5001 -> container 5000: macOS binds 5000 to AirPlay Receiver
+      # by default (ControlCenter), so "5000:5000" fails with "address
+      # already in use" out of the box on a Mac. Container-internal port
+      # stays 5000 (matches the Dockerfile's mlflow server --port).
+      - "5001:5000"
     volumes:
       - ./mlflow-data:/mlflow-data
     restart: unless-stopped

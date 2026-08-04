@@ -159,7 +159,7 @@ python -m shoptalk.embeddings.embed_image
 python -m shoptalk.retrieval.two_stage --query "red shirt for men under 50 dollars"
 python -m shoptalk.eval.generate_golden_set
 #   -> spot-check data/eval/golden_set_review.csv, hand-edit the .jsonl if needed
-docker compose up -d mlflow                        # optional, UI at :5000
+docker compose up -d mlflow                        # optional, UI at :5001 (5000 is taken by macOS AirPlay)
 python -m shoptalk.eval.evaluate_retrieval
 
 # --- Day 3: photo search ---

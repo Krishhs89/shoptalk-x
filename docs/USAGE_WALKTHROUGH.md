@@ -6,20 +6,59 @@
 
 ## Current deployment status
 
-**Running locally right now** — the full stack (API + LLM + UI), built
-against a real ~500-product slice of the ABO catalog, not the earlier
-150-300-item smoke tests. This is the same code and same Docker images that
-would run on AWS; only *where* it's hosted differs. AWS deployment is
-pending real credentials for the account in play (see
-`docs/deployment/aws_ec2.md` for the exact steps — nothing about the
-process changes once those are available, it's a direct swap).
+**Running locally right now, in Docker** — `docker compose up -d` brings up
+all four services as real containers (`restart: unless-stopped`, so they
+survive crashes and, per the note in the previous conversation on process
+ancestry, VS Code closing), built against a real ~500-product slice of the
+ABO catalog. This is the exact same images/config that would run on AWS;
+only *where* it's hosted differs. AWS deployment is pending real credentials
+for the account in play (see `docs/deployment/aws_ec2.md` — nothing about
+the process changes once those are available, it's a direct swap).
 
 | Service | Local URL | What it is |
 |---|---|---|
 | **Chat UI** | http://localhost:8501 | The app — start here |
 | API | http://localhost:8000 | REST backend |
 | API docs (Swagger) | http://localhost:8000/docs | Interactive API explorer |
-| MLflow | http://localhost:5000 | Experiment tracking / model registry |
+| MLflow | http://localhost:5001 | Experiment tracking / model registry (not 5000 -- macOS's AirPlay Receiver squats on 5000 by default) |
+
+### Docker was validated for real, and found (+ fixed) three real bugs
+
+`docker compose up --build` had never actually been run end-to-end before
+this pass — the configs were written and reasoned through, not executed.
+Running it for real surfaced:
+1. **UI image build failure** — `docker-compose.yml`'s `ui` service set the
+   build *context* to `./docker/ui`, but its Dockerfile does `COPY src/
+   src/` / `COPY configs/ configs/`, which only exist at the repo root.
+   Fixed: context now `.`, dockerfile explicitly `docker/ui/Dockerfile`.
+2. **API image build failure** — the root `Dockerfile` only copied
+   `requirements.txt` (which, since the Day-7 per-component split, is just
+   `-r requirements/*.txt` references), not the `requirements/` directory
+   those references point at. Fixed: copies `requirements/` and installs
+   `requirements/serving.txt` directly (leaner image, skips UI/EDA/dev-only
+   deps this service never imports).
+3. **Every containerized request 401'd** — `docker-compose.yml` passes
+   `SHOPTALK_API_KEY: "${SHOPTALK_API_KEY:-}"`, which sets an **empty
+   string**, not "unset", when the host has no such variable. The API's
+   `if API_KEY is None: disable auth` check doesn't catch `""`, so it
+   silently enforced an empty-string key nothing could match. Fixed
+   (`security.py`: `os.environ.get(...) or None`), with regression tests
+   covering unset / empty / real-key cases.
+4. **`/verify` 500'd inside the container** — `products.parquet`'s
+   `image_path` column stores an *absolute host path*, baked in wherever
+   `preprocess.py` last ran. The container mounts the same files at a
+   different absolute path (`/app/data/...` vs the host's
+   `/Users/.../Shoptalk/data/...`), so the stored path didn't resolve.
+   Fixed: `verify.py` now reconstructs the catalog image path from
+   `image_id` + the *current* process's `raw_dir` config at request time,
+   rather than trusting a path baked in by a possibly different
+   environment (also relevant for the Colab/Kaggle-built-then-locally-
+   served workflow, not just Docker).
+
+All four fixed and re-verified live: `/health`, `/verify` (6.4s, correctly
+flagged a real mismatch), and a full `/search/text` round trip through the
+container network (retrieval+rerank 8.5s, LLM 24.7s with the fast stand-in
+model, correct grounded answer) all passed post-fix.
 
 **Important, measured live, not estimated:** on this Mac, Ollama is running
 `llama3.1:8b-instruct-q4_0` **CPU-only** — no GPU/Metal acceleration is
@@ -49,6 +88,18 @@ streamlit run src/shoptalk/ui/app.py`.
 
 ## Bringing it up yourself (if it's not already running)
 
+**Docker (recommended — this is what's actually running):**
+```bash
+open -a Docker                       # start Docker Desktop, wait for it to be ready
+cd Shoptalk
+docker compose up -d --build
+docker compose exec ollama ollama pull llama3.1:8b-instruct-q4_0   # one-time, ~4.7GB
+```
+`docker compose ps` to check status; `docker compose logs -f api` to tail
+logs; `docker compose down` to stop everything (`-v` to also wipe the
+Ollama model volume).
+
+**Native (no Docker), if you'd rather not run the daemon:**
 ```bash
 cd Shoptalk
 source .venv_prod/bin/activate    # or your own venv with `pip install -r requirements.txt`
@@ -64,9 +115,9 @@ uvicorn shoptalk.api.main:app --host 0.0.0.0 --port 8000
 # Terminal 3: UI
 streamlit run src/shoptalk/ui/app.py
 ```
-
-Or, once Docker is available: `docker compose up -d --build` brings up the
-same four services in containers.
+Note: native `ollama serve` and the Docker `ollama` container both want
+port 11434 — stop one before starting the other (`pkill -f "ollama serve"`
+or `docker compose stop ollama`).
 
 ## Walkthrough: using the app
 
@@ -128,7 +179,7 @@ improving with scale).
   `POST /search/text`) with real request/response schemas.
 - **http://localhost:8000/metrics** — Prometheus-format counters/histograms
   per endpoint.
-- **http://localhost:5000** — MLflow: browse the retrieval, fine-tuning, and
+- **http://localhost:5001** — MLflow: browse the retrieval, fine-tuning, and
   verification experiment runs referenced throughout the model cards and
   results files.
 

@@ -18,7 +18,8 @@ stack); these steps only change *where* it runs.
   `nvidia-container-toolkit` preinstalled, so Docker can see the GPU
   immediately.
 - Security group: allow inbound `22` (SSH, restrict to your IP), `8000`
-  (API), `8501` (UI), `5000` (MLflow) — do **not** open these to `0.0.0.0/0`
+  (API), `8501` (UI), `5001` (MLflow, mapped from the container's internal
+  5000 — see `docker-compose.yml`) — do **not** open these to `0.0.0.0/0`
   in anything beyond a demo.
 - Storage: 100GB gp3 (model weights + Docker images + catalog images add up
   fast — the Llama-3.1-8B q4 weights alone are ~4.7GB).
@@ -80,7 +81,7 @@ curl -X POST http://localhost:8000/search/text -H "Content-Type: application/jso
   -d '{"query": "red shirt for men under 50 dollars"}'
 ```
 
-Open `http://<instance-public-ip>:8501` for the UI, `http://<instance-public-ip>:5000` for MLflow.
+Open `http://<instance-public-ip>:8501` for the UI, `http://<instance-public-ip>:5001` for MLflow.
 
 ## 6. Cost control — stop when not actively demoing
 
