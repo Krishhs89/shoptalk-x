@@ -35,6 +35,7 @@ from shoptalk.api.schemas import (
     VerifyResponse,
 )
 from shoptalk.api.security import check_image_size, enforce_rate_limit, require_api_key
+from shoptalk.api.semantic_cache import SemanticCache, embed_query
 from shoptalk.config import load_config
 from shoptalk.rag.chain import _get_chain, _get_llm, answer_from_hits
 from shoptalk.rag.prompts import format_catalog_block, format_history_block
@@ -52,6 +53,8 @@ from shoptalk.retrieval.search import search as stage1_search
 REQUEST_COUNT = Counter("shoptalk_requests_total", "Total requests", ["endpoint", "status"])
 REQUEST_LATENCY = Histogram("shoptalk_request_latency_seconds", "End-to-end request latency", ["endpoint"])
 STAGE_LATENCY = Histogram("shoptalk_stage_latency_seconds", "Per-stage latency", ["endpoint", "stage"])
+CACHE_HIT_COUNT = Counter("shoptalk_cache_hits_total", "Semantic cache hits", ["cache"])
+CACHE_MISS_COUNT = Counter("shoptalk_cache_misses_total", "Semantic cache misses", ["cache"])
 
 # In-process cache of session_id -> [{"role", "content"}, ...], backed by the
 # SQLite `conversations` table (logging_store) for durability across restarts
@@ -59,6 +62,24 @@ STAGE_LATENCY = Histogram("shoptalk_stage_latency_seconds", "Per-stage latency",
 # on every token of a streamed response; every completed turn is written
 # through to SQLite so a restart never loses more than one in-flight turn.
 _state = {"cfg": None, "sessions": {}, "session_users": {}}
+
+# Two semantic caches (see api/semantic_cache.py for why they're separate),
+# built lazily on first request so tests can spin up the app without a real
+# cfg. "retrieval" caches stage1+rerank hits (safe for any query, any
+# session); "full_response" caches the complete LLM answer too, but is only
+# ever consulted for a session's first turn -- see search_text() below.
+_caches = {"retrieval": None, "full_response": None}
+
+
+def _get_cache(name: str, cfg: dict) -> SemanticCache:
+    if _caches[name] is None:
+        ccfg = cfg.get("cache", {})
+        _caches[name] = SemanticCache(
+            maxsize=ccfg.get("max_entries", 500),
+            ttl_seconds=ccfg.get("ttl_seconds", 600),
+            similarity_threshold=ccfg.get("similarity_threshold", 0.93),
+        )
+    return _caches[name]
 
 
 @asynccontextmanager
@@ -163,6 +184,7 @@ def _respond_or_stream(
     rerank_ms: float,
     stream: bool,
     user_name: str = None,
+    cached_answer: str = None,
     extra_fields: dict = None,
 ):
     cfg = _state["cfg"]
@@ -200,10 +222,16 @@ def _respond_or_stream(
 
         return StreamingResponse(token_stream(), media_type="text/event-stream")
 
-    t_llm0 = time.perf_counter()
-    answer_text = answer_from_hits(query_for_llm, reranked, history, cfg=cfg, stream=False)
-    llm_ms = (time.perf_counter() - t_llm0) * 1000
-    STAGE_LATENCY.labels(endpoint=endpoint, stage="llm").observe(llm_ms / 1000)
+    if cached_answer is not None:
+        # Full-response semantic cache hit (see search_text) -- the LLM step
+        # is skipped entirely, not just made faster.
+        answer_text = cached_answer
+        llm_ms = 0.0
+    else:
+        t_llm0 = time.perf_counter()
+        answer_text = answer_from_hits(query_for_llm, reranked, history, cfg=cfg, stream=False)
+        llm_ms = (time.perf_counter() - t_llm0) * 1000
+        STAGE_LATENCY.labels(endpoint=endpoint, stage="llm").observe(llm_ms / 1000)
 
     history.append({"role": "user", "content": query_for_llm})
     history.append({"role": "assistant", "content": answer_text})
@@ -234,20 +262,63 @@ def search_text(req: TextSearchRequest, request: Request):
     cfg = _state["cfg"]
     session_id = req.session_id or str(uuid.uuid4())
 
-    t0 = time.perf_counter()
-    hits = stage1_search(req.query, top_k=cfg["retrieval"]["stage1_k"], cfg=cfg)
-    t1 = time.perf_counter()
-    reranked = rerank(req.query, hits, top_k=req.top_k or cfg["retrieval"]["top_k"], cfg=cfg)
-    t2 = time.perf_counter()
+    # Semantic caching (design doc §12.3) is skipped for streamed responses
+    # -- a cache hit means "return the whole answer instantly", which is a
+    # different response shape (JSON, not an SSE token stream) than a
+    # client asking to stream expects.
+    cache_enabled = cfg.get("cache", {}).get("enabled", True) and not req.stream
+    # "Fresh" = no conversation history yet for this session. Only fresh
+    # turns are eligible for the full-response cache: the cached answer was
+    # generated with no prior context, so it's only valid to hand back to
+    # another request that also has no prior context (see semantic_cache.py
+    # docstring for why the LLM answer can't be cached across sessions with
+    # different history).
+    is_fresh_turn = cache_enabled and not _get_session(session_id)
+    query_embedding = embed_query(req.query, cfg["embeddings"]["text_model"]) if cache_enabled else None
 
-    stage1_ms, rerank_ms = (t1 - t0) * 1000, (t2 - t1) * 1000
-    STAGE_LATENCY.labels(endpoint="/search/text", stage="stage1").observe(t1 - t0)
-    STAGE_LATENCY.labels(endpoint="/search/text", stage="rerank").observe(t2 - t1)
+    if is_fresh_turn:
+        full_cache = _get_cache("full_response", cfg)
+        cached = full_cache.get(req.query, query_embedding)
+        if cached is not None:
+            CACHE_HIT_COUNT.labels(cache="full_response").inc()
+            return _respond_or_stream(
+                "/search/text", req.query, cached["hits"], session_id, 0.0, 0.0, False,
+                user_name=req.user_name, cached_answer=cached["answer"],
+            )
+        CACHE_MISS_COUNT.labels(cache="full_response").inc()
 
-    return _respond_or_stream(
+    retrieval_cache = _get_cache("retrieval", cfg) if cache_enabled else None
+    cached_reranked = retrieval_cache.get(req.query, query_embedding) if retrieval_cache else None
+
+    if cached_reranked is not None:
+        CACHE_HIT_COUNT.labels(cache="retrieval").inc()
+        reranked = cached_reranked
+        stage1_ms = rerank_ms = 0.0
+    else:
+        if retrieval_cache is not None:
+            CACHE_MISS_COUNT.labels(cache="retrieval").inc()
+        t0 = time.perf_counter()
+        hits = stage1_search(req.query, top_k=cfg["retrieval"]["stage1_k"], cfg=cfg)
+        t1 = time.perf_counter()
+        reranked = rerank(req.query, hits, top_k=req.top_k or cfg["retrieval"]["top_k"], cfg=cfg)
+        t2 = time.perf_counter()
+        stage1_ms, rerank_ms = (t1 - t0) * 1000, (t2 - t1) * 1000
+        STAGE_LATENCY.labels(endpoint="/search/text", stage="stage1").observe(t1 - t0)
+        STAGE_LATENCY.labels(endpoint="/search/text", stage="rerank").observe(t2 - t1)
+        if retrieval_cache is not None:
+            retrieval_cache.put(req.query, query_embedding, reranked)
+
+    response = _respond_or_stream(
         "/search/text", req.query, reranked, session_id, stage1_ms, rerank_ms, req.stream,
         user_name=req.user_name,
     )
+
+    if is_fresh_turn and not req.stream:
+        _get_cache("full_response", cfg).put(
+            req.query, query_embedding, {"answer": response.answer, "hits": reranked}
+        )
+
+    return response
 
 
 @app.post("/search/image", response_model=ImageSearchResponse, dependencies=[Depends(require_api_key)])

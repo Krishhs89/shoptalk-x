@@ -39,6 +39,12 @@ retrieval:
   rerank_batch_size: 64
   image_stage1_k: 50     # CLIP-ANN candidates handed to the image-query reranker
 
+cache:
+  enabled: true
+  similarity_threshold: 0.93   # calibrated against real bge-base-en-v1.5 query embeddings -- see api/semantic_cache.py
+  ttl_seconds: 600
+  max_entries: 500
+
 eval:
   golden_set_path: "data/eval/golden_set.jsonl"
   golden_set_size: 100
