@@ -67,8 +67,13 @@ services:
     # Hard cap so a memory spike here (see OMP_NUM_THREADS note above) gets
     # contained to an OOM-killed container -- Airflow's default_args.retries
     # then retries the task -- rather than exhausting host memory and
-    # hanging the whole EC2 instance.
-    mem_limit: "6g"
+    # hanging the whole EC2 instance. 6g was tried first and was too tight:
+    # the container hit it and got SIGKILLed (return code -9) well before
+    # finetune_embeddings finished -- its real peak, observed uncapped, was
+    # ~11.8GB. 10g leaves ~5GB for the rest of the stack (api ~2.3GB, mlflow
+    # ~0.5GB, ui/system overhead) out of 15GB total, plus the swap file is
+    # still there as a further backstop if this estimate is still off.
+    mem_limit: "10g"
     command: standalone
 
 volumes:
