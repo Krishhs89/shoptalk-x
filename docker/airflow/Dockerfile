@@ -11,7 +11,13 @@ COPY --chown=airflow requirements.txt /opt/shoptalk/requirements.txt
 # alongside it can conflict, so this demo installs only what the DAG's task
 # functions actually import (pandas/sentence-transformers/mlflow/etc.),
 # skipping heavier serving-only deps (fastapi, streamlit, locust, evidently).
-RUN pip install --no-cache-dir --user \
+# NOT --user: apache/airflow's official images already run inside a venv
+# (that's how they isolate Airflow's own pinned deps), and pip's --user flag
+# is incompatible with installing into an active virtualenv ("User
+# site-packages are not visible in this virtualenv") -- caught for real the
+# first time this image was actually built, since this Dockerfile had never
+# been run before.
+RUN pip install --no-cache-dir \
     pandas==2.2.3 pyarrow==17.0.0 PyYAML==6.0.2 \
     sentence-transformers==3.3.1 chromadb==0.5.23 \
     mlflow==2.18.0 datasets==3.1.0 accelerate==1.1.1
