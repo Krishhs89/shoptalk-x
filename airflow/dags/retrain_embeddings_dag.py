@@ -65,7 +65,16 @@ def task_finetune_embeddings(**context):
 
     from shoptalk.embeddings.finetune_text import main as finetune_main
 
-    sys.argv = ["finetune_text.py"]  # use config.yaml defaults for epochs/batch-size
+    # --device cpu: this task shares a host with the serving stack (Ollama
+    # holding the GPU for the LLM, the API's own CLIP/BLIP/reranker models).
+    # Caught for real on a g4dn.xlarge: letting this task grab CUDA while
+    # Ollama already had it loaded caused the whole instance to become
+    # unresponsive (SSHD stopped answering, AWS's reachability check kept
+    # reporting "ok" the entire time -- it doesn't catch this) and needed a
+    # hard reboot to recover, twice. This step is small (~100 triplets, a
+    # few epochs of a base-sized model) -- CPU is plenty fast and avoids the
+    # GPU contention entirely rather than trying to coordinate who holds it.
+    sys.argv = ["finetune_text.py", "--device", "cpu"]
     finetune_main()
 
 
@@ -95,8 +104,10 @@ def task_evaluate_and_promote(**context):
     # fine-tuned checkpoint once one has been promoted to serving, which
     # would make this compare the new retrain against itself.
     base_text_model = cfg["embeddings"].get("base_text_model", cfg["embeddings"]["text_model"])
-    base_model = SentenceTransformer(base_text_model)
-    ft_model = SentenceTransformer(finetuned_path)
+    # device="cpu" -- same GPU-contention reasoning as task_finetune_embeddings
+    # above (this host also runs Ollama, which holds the GPU for serving).
+    base_model = SentenceTransformer(base_text_model, device="cpu")
+    ft_model = SentenceTransformer(finetuned_path, device="cpu")
 
     base_recall = recall_at_k(base_model, products_df, golden_set, [10])["recall@10"]
     ft_recall = recall_at_k(ft_model, products_df, golden_set, [10])["recall@10"]

@@ -115,15 +115,34 @@ def _save_state(state_path: Path, completed_epochs: int, total_epochs: int) -> N
     os.replace(tmp, state_path)
 
 
+def resolve_device(requested: str) -> str:
+    if requested != "auto":
+        return requested
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--output-dir", default=None)
+    parser.add_argument(
+        "--device",
+        default=None,
+        help="overrides embeddings.device from config.yaml -- e.g. --device cpu to avoid "
+        "GPU contention when something else (Ollama, a concurrent embedding job) is already "
+        "holding the GPU. This step is small (~100 triplets) so CPU is plenty fast here.",
+    )
     args = parser.parse_args()
 
     cfg = load_config()
     dcfg, ecfg = cfg["data"], cfg["embeddings"]
+    device = resolve_device(args.device or ecfg.get("device", "auto"))
+    print(f"device: {device}")
 
     golden_path = Path(cfg["eval"]["golden_set_path"])
     if not golden_path.exists():
@@ -153,14 +172,14 @@ def main():
 
     if completed > 0:
         print(f"resuming from epoch {completed + 1}/{args.epochs} (loading saved weights from {output_dir})")
-        model = SentenceTransformer(output_dir)
+        model = SentenceTransformer(output_dir, device=device)
     else:
         # Always the pristine pretrained model, NOT ecfg["text_model"] -- the
         # latter may itself already point at a fine-tuned checkpoint (once one
         # has been promoted to serving), and fine-tuning from itself on the
         # same golden set again is not a meaningful fresh retrain.
         base_text_model = ecfg.get("base_text_model", ecfg["text_model"])
-        model = SentenceTransformer(base_text_model)
+        model = SentenceTransformer(base_text_model, device=device)
 
     train_dataloader = DataLoader(examples, shuffle=True, batch_size=args.batch_size)
     train_loss = losses.TripletLoss(model=model)
