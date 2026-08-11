@@ -21,8 +21,13 @@ data/verification/pairs.jsonl
 # Models / experiment tracking
 mlruns/
 mlflow-data/
-data/models/            # full fine-tuned embedding checkpoint (~440MB) -- too large for git;
-                         # export to MLflow registry / HF Hub instead (see README)
+# Full fine-tuned embedding checkpoint (~440MB) -- too large for git; export to
+# MLflow registry / HF Hub instead (see README). NOTE: keep this comment on its
+# own line above the pattern, not inline after it -- git's .gitignore parser
+# does not strip inline "# ..." comments, so `data/models/  # comment` was
+# silently matching nothing and letting the whole directory get staged (same
+# bug class already hit once before with the *.docx rule).
+data/models/
 *.bin
 *.gguf
 

@@ -9,7 +9,7 @@
 {"query_id": "q0008", "query": "affordable black power bank from AmazonBasics", "template": "affordable_brand_color", "category": "POWER_BANK", "seed_item_id": "B08443JQ7W", "positive_ids": ["B08443JQ7W"]}
 {"query_id": "q0009", "query": "Strathwood by Amazon.com wildlife feeder", "template": "brand", "category": "WILDLIFE_FEEDER", "seed_item_id": "B000WA0HJW", "positive_ids": ["B000W9Z1LW", "B000WA0HJW"]}
 {"query_id": "q0010", "query": "camcorder", "template": "plain", "category": "CAMCORDER", "seed_item_id": "B07S85CRGF", "positive_ids": ["B07S85CRGF"]}
-{"query_id": "q0011", "query": "grocery", "template": "plain", "category": "GROCERY", "seed_item_id": "B074VBLHYH", "positive_ids": ["B07BTPYZ8V", "B07DFRWQCR", "B072Q4FVMV", "B07BL6MFV7", "B077XL8VHN", "B079WWYFMC", "B074H5LYKN", "B07NR976YQ"]}
+{"query_id": "q0011", "query": "grocery", "template": "plain", "category": "GROCERY", "seed_item_id": "B07RM4NLZ8", "positive_ids": ["B07BTPYZ8V", "B07DFRWQCR", "B072Q4FVMV", "B07BL6MFV7", "B077XL8VHN", "B079WWYFMC", "B074H5LYKN", "B07NR976YQ"]}
 {"query_id": "q0012", "query": "food preparation mold", "template": "plain", "category": "FOOD_PREPARATION_MOLD", "seed_item_id": "B07CN7B2H1", "positive_ids": ["B07GDKJVTN", "B07CN7B2H1", "B07GDSDSSD"]}
 {"query_id": "q0013", "query": "white writing board by AmazonBasics", "template": "brand_color", "category": "WRITING_BOARD", "seed_item_id": "B077TGBB72", "positive_ids": ["B077TGBB72"]}
 {"query_id": "q0014", "query": "earring", "template": "plain", "category": "EARRING", "seed_item_id": "B01CNMKZNE", "positive_ids": ["B01CNMKZNE", "B07HCLB4H9", "B07ZQFRM5R", "B07HCT83L7", "B07ZH1YZC9", "B01ISW5WYK", "B0046ZT55G", "B07HCT74VX"]}

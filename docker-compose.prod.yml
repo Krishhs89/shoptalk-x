@@ -1,0 +1,22 @@
+# Production overlay for the AWS EC2 GPU deployment (g4dn.xlarge + nvidia-container-toolkit).
+# Not used for local Mac development -- Docker Desktop for Mac can't pass through
+# a GPU, so the base docker-compose.yml stays CPU-only there.
+#
+# Usage (on the EC2 instance, from the repo root):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Adds real GPU passthrough for Ollama (the 8B LLM is the dominant latency cost;
+# this is what turns a multi-minute CPU response into a sub-few-second one) and
+# binds services to 0.0.0.0 so they're reachable from outside the instance
+# (already the default -- ports section is unchanged from docker-compose.yml,
+# restated here only for clarity since this file is the "how we actually run it
+# in production" reference).
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
