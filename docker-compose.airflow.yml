@@ -31,6 +31,21 @@ services:
       # Receiver on a Mac; kept consistent across environments rather than
       # branching the port by OS).
       MLFLOW_TRACKING_URI: "http://host.docker.internal:5001"
+      # Makes CUDA invisible to every process in this container, container-wide,
+      # rather than relying on every individual script to remember to pass
+      # device="cpu". Real failure on a shared GPU host (the EC2 g4dn.xlarge
+      # that also runs the serving stack): the DAG's rebuild_golden_set task
+      # calls into shoptalk.retrieval.search's model loader -- same code path
+      # the live API uses -- which has no device argument and defaults to
+      # grabbing CUDA. With Ollama and the API's own CLIP/BLIP/reranker models
+      # already resident on the same 16GB T4, that was enough contention to
+      # hang the whole instance (SSHD stopped responding, needed a hard
+      # reboot) even with finetune_text.py's own --device cpu fix already in
+      # place -- that fix only covered two of the DAG's several model-loading
+      # call sites, not all of them. This is the container-wide version of the
+      # same fix: nothing in here can see a GPU, full stop, regardless of
+      # which script forgets to ask for CPU explicitly.
+      CUDA_VISIBLE_DEVICES: ""
     # host.docker.internal only resolves automatically on Docker Desktop
     # (Mac/Windows); native Linux Docker Engine (e.g. this project's EC2
     # deployment) needs this extra_hosts entry to route it to the host.
