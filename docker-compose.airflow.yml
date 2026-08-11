@@ -23,6 +23,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data:/opt/shoptalk/data
+      - ./results:/opt/shoptalk/results
       - airflow-metadata:/opt/airflow
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"

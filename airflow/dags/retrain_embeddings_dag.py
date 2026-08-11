@@ -61,21 +61,32 @@ def task_rebuild_golden_set(**context):
 
 
 def task_finetune_embeddings(**context):
-    import sys
-
-    from shoptalk.embeddings.finetune_text import main as finetune_main
-
+    # subprocess, not an in-process import+call -- caught for real: calling
+    # finetune_main() directly inside Airflow's long-lived task-runner
+    # process showed genuine unbounded memory growth *within a single
+    # epoch* (7 tiny steps, ~100 triplets), climbing from a few GB to
+    # swapping through nearly the entire 8GB swap file and still growing,
+    # eventually OOM-killed even at a 10GB container cap. The exact same
+    # script (`finetune_text.py`) run as a plain subprocess -- both in a
+    # local smoke test and in the original successful EC2 pipeline run --
+    # completed cleanly in under 2 minutes with no such growth. Shelling
+    # out here matches this module's own docstring ("each task shells out
+    # to the same scripts you'd run by hand") and sidesteps whatever about
+    # Airflow's in-process execution (long-lived interpreter, its own
+    # logging/context machinery) was holding onto memory across steps,
+    # rather than chasing that root cause further.
+    #
     # --device cpu: this task shares a host with the serving stack (Ollama
-    # holding the GPU for the LLM, the API's own CLIP/BLIP/reranker models).
-    # Caught for real on a g4dn.xlarge: letting this task grab CUDA while
-    # Ollama already had it loaded caused the whole instance to become
-    # unresponsive (SSHD stopped answering, AWS's reachability check kept
-    # reporting "ok" the entire time -- it doesn't catch this) and needed a
-    # hard reboot to recover, twice. This step is small (~100 triplets, a
-    # few epochs of a base-sized model) -- CPU is plenty fast and avoids the
-    # GPU contention entirely rather than trying to coordinate who holds it.
-    sys.argv = ["finetune_text.py", "--device", "cpu"]
-    finetune_main()
+    # holding the GPU for the LLM, the API's own CLIP/BLIP/reranker models)
+    # -- see docker-compose.airflow.yml's CUDA_VISIBLE_DEVICES note for the
+    # GPU-contention hang this also avoids.
+    import subprocess
+
+    subprocess.run(
+        ["python", "-m", "shoptalk.embeddings.finetune_text", "--device", "cpu", "--batch-size", "8"],
+        check=True,
+        cwd="/opt/shoptalk",
+    )
 
 
 def task_evaluate_and_promote(**context):
@@ -84,33 +95,31 @@ def task_evaluate_and_promote(**context):
     actually improves -- the CI-style regression gate from design doc §7.2
     ("every model/prompt change evaluated against it before promotion")."""
     import json
+    import subprocess
     from pathlib import Path
 
     import mlflow
-    import pandas as pd
-    from sentence_transformers import SentenceTransformer
 
     from shoptalk.config import load_config
-    from shoptalk.embeddings.eval_finetune import recall_at_k
-    from shoptalk.retrieval.search import BGE_QUERY_INSTRUCTION  # noqa: F401 (documents the query convention)
 
     cfg = load_config()
-    products_df = pd.read_parquet(f"{cfg['data']['processed_dir']}/products.parquet")
-    golden_set = [json.loads(line) for line in open(cfg["eval"]["golden_set_path"])]
-
     finetuned_path = str(Path(cfg["data"]["processed_dir"]).parent / "models" / "bge-finetuned")
-    # Always the pristine pretrained model as the comparison floor, not
-    # cfg["embeddings"]["text_model"] -- that may itself already BE the
-    # fine-tuned checkpoint once one has been promoted to serving, which
-    # would make this compare the new retrain against itself.
-    base_text_model = cfg["embeddings"].get("base_text_model", cfg["embeddings"]["text_model"])
-    # device="cpu" -- same GPU-contention reasoning as task_finetune_embeddings
-    # above (this host also runs Ollama, which holds the GPU for serving).
-    base_model = SentenceTransformer(base_text_model, device="cpu")
-    ft_model = SentenceTransformer(finetuned_path, device="cpu")
 
-    base_recall = recall_at_k(base_model, products_df, golden_set, [10])["recall@10"]
-    ft_recall = recall_at_k(ft_model, products_df, golden_set, [10])["recall@10"]
+    # subprocess, not in-process model loading -- same reasoning as
+    # task_finetune_embeddings above: this loads two full SentenceTransformer
+    # models to encode the whole catalog + golden queries, which is exactly
+    # the kind of work observed leaking memory inside Airflow's long-lived
+    # task-runner process. eval_finetune.py already writes both a markdown
+    # report and (as of this fix) a JSON summary this task reads back.
+    subprocess.run(
+        ["python", "-m", "shoptalk.embeddings.eval_finetune", "--finetuned-path", finetuned_path],
+        check=True,
+        cwd="/opt/shoptalk",
+    )
+    results_dir = Path(cfg["eval"]["results_dir"])
+    metrics = json.loads((results_dir / "day5_finetune_eval.json").read_text())
+    base_recall = metrics["base_model"]["recall@10"]
+    ft_recall = metrics["finetuned_model"]["recall@10"]
     print(f"base recall@10={base_recall:.4f}  finetuned recall@10={ft_recall:.4f}")
 
     mlflow.set_tracking_uri(cfg["mlflow"]["tracking_uri"])

@@ -95,6 +95,14 @@ def main():
         f.write("\n")
     print(f"\nwrote {md_path}")
 
+    # Machine-readable twin of the markdown table -- so a caller (e.g. the
+    # Airflow retrain DAG, which runs this as a subprocess rather than
+    # importing it -- see that DAG's own notes on why) can read the exact
+    # numbers back without parsing markdown.
+    json_path = results_dir / "day5_finetune_eval.json"
+    json_path.write_text(json.dumps({"base_model": base_metrics, "finetuned_model": ft_metrics}))
+    print(f"wrote {json_path}")
+
     mlflow.set_tracking_uri(cfg["mlflow"]["tracking_uri"])
     mlflow.set_experiment(cfg["mlflow"]["experiment_name"])
     for name, metrics, model_ref in [
