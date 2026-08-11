@@ -12,7 +12,14 @@ data:
   seed: 42
 
 embeddings:
-  text_model: "data/models/bge-finetuned"   # fine-tuned on this catalog's golden set; falls back conceptually to BAAI/bge-base-en-v1.5 if this dir is ever removed -- see docs
+  text_model: "data/models/bge-finetuned"   # what's actually used for live serving/search right now
+  base_text_model: "BAAI/bge-base-en-v1.5"  # the pristine pretrained model -- always the starting point for a
+                                             # fresh finetune_text.py run and the comparison floor in
+                                             # eval_finetune.py / the Airflow retrain DAG, regardless of what
+                                             # text_model above currently points at. Keeping these separate
+                                             # matters once text_model itself points at a fine-tuned checkpoint
+                                             # (as it does now) -- without this, a fresh retrain would start
+                                             # from (and get compared against) itself instead of the real base.
   batch_size: 64
   device: "auto"        # "cuda" | "mps" | "cpu" | "auto"
   chroma_dir: "data/chroma"

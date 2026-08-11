@@ -62,8 +62,12 @@ def main():
     golden_set = [json.loads(line) for line in open(golden_path)]
     k_values = [10, 50]
 
-    print("evaluating base (pretrained) model...")
-    base_model = SentenceTransformer(cfg["embeddings"]["text_model"])
+    # Always the pristine pretrained model -- see config.yaml's base_text_model
+    # comment for why this can't just be cfg["embeddings"]["text_model"] (that
+    # may itself already be a fine-tuned checkpoint once one is promoted).
+    base_text_model = cfg["embeddings"].get("base_text_model", cfg["embeddings"]["text_model"])
+    print(f"evaluating base (pretrained) model ({base_text_model})...")
+    base_model = SentenceTransformer(base_text_model)
     base_metrics = recall_at_k(base_model, products_df, golden_set, k_values)
 
     print("evaluating fine-tuned model...")
@@ -94,7 +98,7 @@ def main():
     mlflow.set_tracking_uri(cfg["mlflow"]["tracking_uri"])
     mlflow.set_experiment(cfg["mlflow"]["experiment_name"])
     for name, metrics, model_ref in [
-        ("base_embedding_model", base_metrics, cfg["embeddings"]["text_model"]),
+        ("base_embedding_model", base_metrics, base_text_model),
         ("finetuned_embedding_model", ft_metrics, args.finetuned_path),
     ]:
         with mlflow.start_run(run_name=name):

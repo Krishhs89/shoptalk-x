@@ -155,7 +155,12 @@ def main():
         print(f"resuming from epoch {completed + 1}/{args.epochs} (loading saved weights from {output_dir})")
         model = SentenceTransformer(output_dir)
     else:
-        model = SentenceTransformer(ecfg["text_model"])
+        # Always the pristine pretrained model, NOT ecfg["text_model"] -- the
+        # latter may itself already point at a fine-tuned checkpoint (once one
+        # has been promoted to serving), and fine-tuning from itself on the
+        # same golden set again is not a meaningful fresh retrain.
+        base_text_model = ecfg.get("base_text_model", ecfg["text_model"])
+        model = SentenceTransformer(base_text_model)
 
     train_dataloader = DataLoader(examples, shuffle=True, batch_size=args.batch_size)
     train_loss = losses.TripletLoss(model=model)

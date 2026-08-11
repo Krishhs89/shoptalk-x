@@ -78,7 +78,6 @@ def task_evaluate_and_promote(**context):
     from pathlib import Path
 
     import mlflow
-    import numpy as np
     import pandas as pd
     from sentence_transformers import SentenceTransformer
 
@@ -91,7 +90,12 @@ def task_evaluate_and_promote(**context):
     golden_set = [json.loads(line) for line in open(cfg["eval"]["golden_set_path"])]
 
     finetuned_path = str(Path(cfg["data"]["processed_dir"]).parent / "models" / "bge-finetuned")
-    base_model = SentenceTransformer(cfg["embeddings"]["text_model"])
+    # Always the pristine pretrained model as the comparison floor, not
+    # cfg["embeddings"]["text_model"] -- that may itself already BE the
+    # fine-tuned checkpoint once one has been promoted to serving, which
+    # would make this compare the new retrain against itself.
+    base_text_model = cfg["embeddings"].get("base_text_model", cfg["embeddings"]["text_model"])
+    base_model = SentenceTransformer(base_text_model)
     ft_model = SentenceTransformer(finetuned_path)
 
     base_recall = recall_at_k(base_model, products_df, golden_set, [10])["recall@10"]
