@@ -46,11 +46,29 @@ services:
       # same fix: nothing in here can see a GPU, full stop, regardless of
       # which script forgets to ask for CPU explicitly.
       CUDA_VISIBLE_DEVICES: ""
+      # Caps PyTorch's CPU intra-op parallelism. Unset, it defaults to one
+      # thread per host core; combined with the HF Trainer path
+      # finetune_text.py goes through (see that module's own notes), this
+      # was observed spiking the container to 11.77GB RSS and taking the
+      # WHOLE EC2 HOST down (not just this container) -- the host had no
+      # swap configured, so once physical memory ran out there was nowhere
+      # left to go and the box became fully unresponsive, requiring a hard
+      # reboot. A host-level swap file is now in place as a general safety
+      # net (see docs/deployment/aws_ec2.md), and mem_limit below caps this
+      # specific container so a runaway task gets OOM-killed and can be
+      # retried, instead of ever repeating that host-wide hang.
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
     # host.docker.internal only resolves automatically on Docker Desktop
     # (Mac/Windows); native Linux Docker Engine (e.g. this project's EC2
     # deployment) needs this extra_hosts entry to route it to the host.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Hard cap so a memory spike here (see OMP_NUM_THREADS note above) gets
+    # contained to an OOM-killed container -- Airflow's default_args.retries
+    # then retries the task -- rather than exhausting host memory and
+    # hanging the whole EC2 instance.
+    mem_limit: "6g"
     command: standalone
 
 volumes:
