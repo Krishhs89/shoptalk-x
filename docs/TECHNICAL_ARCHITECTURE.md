@@ -14,6 +14,7 @@ flowchart TD
         TXT[POST /search/text]
         IMG[POST /search/image]
         VER[POST /verify]
+        QTY[POST /verify/quantity]
         FB[POST /feedback]
     end
 
@@ -34,16 +35,21 @@ flowchart TD
         MLP[Trained MLP head]
     end
 
+    subgraph Count[Quantity check]
+        YOLO[Pretrained YOLOv8n<br/>COCO classes only]
+    end
+
     subgraph Data[Offline pipeline]
         DL[download_abo.py] --> PP[preprocess.py] --> CAP[caption_images.py]
         CAP --> ET[embed_text.py] --> CHROMA1[(Chroma: shoptalk_products)]
         CAP --> EI[embed_image.py] --> CHROMA2[(Chroma: shoptalk_images)]
     end
 
-    UI --> TXT & IMG & VER & FB
+    UI --> TXT & IMG & VER & QTY & FB
     TXT --> S1T --> RR --> RAG --> LLM
     IMG --> S1I --> BLIP2 --> RR
     VER --> CLIPV --> MLP
+    QTY --> YOLO
     RR -.reads.-> CHROMA1
     S1T -.reads.-> CHROMA1
     S1I -.reads.-> CHROMA2

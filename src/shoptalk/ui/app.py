@@ -287,6 +287,55 @@ def verification_tab():
             st.warning("Low-confidence result -- routed to human review, not an automatic accusation.")
 
 
+def quantity_tab():
+    st.subheader("Quantity check")
+    st.caption(
+        "Upload a photo of the received items and confirm the count matches what you "
+        "ordered -- uses a pretrained object detector, so only products in its ~80 "
+        "known object classes (bottles, books, chairs, produce, etc.) can be checked."
+    )
+
+    catalog = load_catalog_preview()
+    if catalog is not None and len(catalog) > 0:
+        options = catalog[["item_id", "item_name"]].apply(lambda r: f"{r['item_id']} — {r['item_name'][:60]}", axis=1)
+        choice = st.selectbox("Ordered item", options, key="qty_item_select")
+        order_item_id = choice.split(" — ")[0]
+    else:
+        order_item_id = st.text_input("Ordered item_id", key="qty_item_id")
+
+    claimed_qty = st.number_input("Claimed quantity", min_value=1, max_value=100, value=1, step=1)
+    photo = st.file_uploader("Received items photo", type=["jpg", "jpeg", "png"], key="qty_photo")
+    if photo:
+        st.image(photo, caption="received items", width=200)
+
+    if st.button("Check quantity") and order_item_id and photo:
+        with st.spinner("Detecting objects in photo..."):
+            try:
+                files = {"file": (photo.name, photo.getvalue(), photo.type)}
+                resp = requests.post(
+                    f"{API_BASE_URL}/verify/quantity", files=files,
+                    params={"order_item_id": order_item_id, "claimed_qty": int(claimed_qty)},
+                    headers=_headers(), timeout=30,
+                )
+                resp.raise_for_status()
+                result = resp.json()
+            except requests.RequestException as e:
+                st.error(f"Quantity check failed: {e}")
+                return
+
+        if result["verdict"] == "unsupported":
+            st.info(result.get("message") or "This product isn't covered by the pretrained detector.")
+        else:
+            badge = {"match": "🟢", "mismatch": "🔴", "suspect": "🟡"}[result["verdict"]]
+            st.markdown(f"### {badge} {result['verdict'].upper()}")
+            st.caption(
+                f"claimed={result['claimed_qty']}  detected={result['detected_count']}  "
+                f"class={result['matched_class']}"
+            )
+            if result["verdict"] == "suspect":
+                st.warning("Close count mismatch -- routed to human review, not an automatic rejection.")
+
+
 def main():
     st.set_page_config(page_title="ShopTalk-X", page_icon="🛍️", layout="centered")
     st.title("🛍️ ShopTalk-X")
@@ -331,11 +380,13 @@ def main():
                 if st.button(label, key=f"resume_{convo['session_id']}", disabled=is_current, use_container_width=True):
                     _resume_conversation(convo["session_id"])
 
-    tab1, tab2 = st.tabs(["Chat search", "Verify order"])
+    tab1, tab2, tab3 = st.tabs(["Chat search", "Verify order", "Verify quantity"])
     with tab1:
         chat_search_tab()
     with tab2:
         verification_tab()
+    with tab3:
+        quantity_tab()
 
 
 if __name__ == "__main__":

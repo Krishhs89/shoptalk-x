@@ -28,6 +28,10 @@ mlflow-data/
 # silently matching nothing and letting the whole directory get staged (same
 # bug class already hit once before with the *.docx rule).
 data/models/
+# Pretrained YOLO checkpoint -- ultralytics auto-downloads it fresh on first
+# use (see shoptalk.counting.count._get_yolo), same as the other pretrained
+# weights here (open_clip, sentence-transformers) that aren't vendored.
+data/counting/
 *.bin
 *.gguf
 

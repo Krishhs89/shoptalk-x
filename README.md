@@ -81,9 +81,9 @@ docker compose up -d --build
   (Ollama, `llama3.1:8b-instruct-q4_0`), with prompt-injection-resistant
   delimiting and explicit (non-LangChain-Memory) conversation history.
 - `api/main.py` + `schemas.py`/`security.py`/`logging_store.py` — FastAPI
-  service: `/search/text`, `/search/image`, `/verify`, `/feedback`,
-  `/health`, `/metrics`; models loaded once at startup; API-key auth, rate
-  limiting, per-request SQLite prediction logging.
+  service: `/search/text`, `/search/image`, `/verify`, `/verify/quantity`,
+  `/feedback`, `/health`, `/metrics`; models loaded once at startup;
+  API-key auth, rate limiting, per-request SQLite prediction logging.
 
 ### Day 5 — fine-tuning, verification head, frontend
 - `embeddings/finetune_text.py`, `eval_finetune.py` — triplet-loss
@@ -103,9 +103,9 @@ docker compose up -d --build
 - `.github/workflows/ci.yml` — lint (`ruff`) → test (`pytest`, 29 tests) →
   build/push to ECR → deploy to EC2, with cloud stages that skip cleanly
   (not fail) when credentials aren't configured.
-- `docs/deployment/aws_ec2.md` — full EC2 deployment guide, documented but
-  not executed (an AI agent shouldn't provision billable cloud infra
-  unattended — see the doc for why).
+- `docs/deployment/aws_ec2.md` — full EC2 deployment guide; **now live**
+  (see "Production hardening" below) — originally documented-not-executed,
+  actually run once real AWS access existed.
 - `loadtest/locustfile.py`, `monitoring/drift_report.py` — Locust load
   testing; Evidently drift detection, validated to actually detect a
   simulated distribution shift (`results/day6_drift_report.md`).
@@ -134,9 +134,35 @@ docker compose up -d --build
 - **Voice input** (`voice/transcribe.py`) — faster-whisper STT wired into
   the UI's chat tab. Validated with a real generated speech clip
   transcribed correctly end-to-end.
-- **Not attempted:** quantity validation (YOLO-based per-line-item order
-  count check) — the largest remaining stretch item; needs an
-  object-detection annotation pipeline beyond this build's scope.
+- **Quantity/count validation** (`counting/*`) — `POST /verify/quantity` +
+  a "Verify quantity" UI tab, checking a claimed item count against a
+  photo via a **pretrained** YOLOv8n (COCO) detector — no custom-trained
+  counting model, since there's no labeled counting dataset for this
+  catalog. Honestly scoped: most catalog categories have no COCO
+  equivalent and return `"unsupported"` rather than a guessed count (see
+  `docs/model_cards/quantity_counting.md`).
+
+### Production hardening (post-Day-7)
+Closing the gaps between "demoed locally" and "actually running in
+production":
+- **Fine-tuned embedding model wired into serving** — `configs/config.yaml`
+  now points live search at `data/models/bge-finetuned` (previously
+  fine-tuning was validated in isolation but never actually served).
+- **Live AWS deployment** — the full stack (API, UI, MLflow, Ollama) is
+  running on a real EC2 `g4dn.xlarge` instance, not just documented (see
+  `docs/deployment/aws_ec2.md`, now written from what was actually run,
+  including the instance-level config — swap, file permissions — that
+  isn't in git).
+- **Retraining DAG run end-to-end for real** on that instance, past a
+  genuine multi-cause debugging saga (memory exhaustion → in-process
+  execution memory leak → captured subprocess output → file permissions);
+  see the "Operational lessons" section of `docs/deployment/aws_ec2.md`.
+- **Quantity/count validation** added (see above) — the last of the
+  originally-scoped-out stretch items.
+- **Offline vs. online production docs split**:
+  `docs/deployment/offline_production.md` (single-machine Docker) and
+  `docs/deployment/aws_ec2.md` (AWS EC2), so either deployment target has
+  an accurate, dedicated runbook.
 
 ## Full pipeline (every command, in order)
 

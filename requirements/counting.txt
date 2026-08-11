@@ -1,0 +1,4 @@
+# Quantity/count validation, pretrained YOLO (Day 6/7 gap closure) --
+# shoptalk.counting.*
+-r embeddings.txt
+ultralytics==8.3.40

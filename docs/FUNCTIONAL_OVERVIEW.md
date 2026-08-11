@@ -6,9 +6,10 @@
 
 A conversational shopping assistant over a ~10k-product catalog (Amazon
 Berkeley Objects). You can search it three ways, and it can verify a
-delivered item against what you ordered.
+delivered item — both *which* item it is and *how many* — against what you
+ordered.
 
-## The four things a user can do
+## The five things a user can do
 
 ### 1. Ask in plain English
 > "Show me a red shirt for men under 50 dollars"
@@ -29,7 +30,16 @@ you: **match**, **mismatch**, or **suspect** (uncertain — routed to a human
 for review rather than guessing). This is the "did I get the wrong item /
 a counterfeit" check.
 
-### 4. Give feedback
+### 4. Check a quantity
+Claim you received the wrong count (e.g. "I ordered 3, only 2 arrived")?
+Upload a photo and the claimed quantity, and the system counts visible
+instances using a pretrained object detector and tells you: **match**,
+**mismatch**, or **suspect** (close count, routed to human review) — or
+**unsupported** if that product isn't a type the detector can recognize
+(it only knows ~80 general object types, not this catalog's fine-grained
+categories; see `docs/model_cards/quantity_counting.md`).
+
+### 5. Give feedback
 Thumbs up/down on any response. This is logged and, in a full production
 loop, would feed the retraining pipeline (Day 6's Airflow DAG) so the
 system improves from real usage over time.
@@ -38,10 +48,10 @@ system improves from real usage over time.
 
 - **Chat UI** (Streamlit, `streamlit run src/shoptalk/ui/app.py`): the
   everyday interface — chat box, photo upload, conversation history, thumbs
-  feedback, and a separate "Verify order" tab.
+  feedback, a "Verify order" tab, and a "Verify quantity" tab.
 - **REST API directly** (`POST /search/text`, `POST /search/image`,
-  `POST /verify`, `POST /feedback`): for programmatic access or building a
-  different frontend. Full request/response shapes in
+  `POST /verify`, `POST /verify/quantity`, `POST /feedback`): for
+  programmatic access or building a different frontend. Full request/response shapes in
   `src/shoptalk/api/schemas.py`; interactive docs at `/docs` once the
   server is running (FastAPI auto-generates Swagger UI).
 - **CLI** (`python -m shoptalk.retrieval.two_stage --query "..."`, etc.):

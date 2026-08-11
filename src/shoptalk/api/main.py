@@ -6,6 +6,7 @@ Endpoints:
   POST /search/text   text query -> RAG answer + product hits (SSE if stream=true)
   POST /search/image  photo upload -> RAG answer + product hits
   POST /verify         order photo verification (Day 5's Siamese/MLP head)
+  POST /verify/quantity quantity/count check against a claimed count (pretrained YOLO)
   POST /feedback        thumbs up/down on a prior request_id
   GET  /health
   GET  /metrics         Prometheus exposition format
@@ -30,6 +31,7 @@ from shoptalk.api.schemas import (
     ImageSearchResponse,
     LatencyBreakdown,
     ProductHit,
+    QuantityCheckResponse,
     SearchResponse,
     TextSearchRequest,
     VerifyResponse,
@@ -391,6 +393,40 @@ async def verify(request: Request, order_item_id: str, file: UploadFile = File(.
         verdict=result["verdict"],
         confidence=result["confidence"],
         threshold=result["threshold"],
+        order_item_id=order_item_id,
+        request_id=str(uuid.uuid4()),
+    )
+
+
+@app.post("/verify/quantity", response_model=QuantityCheckResponse, dependencies=[Depends(require_api_key)])
+async def verify_quantity_endpoint(
+    request: Request, order_item_id: str, claimed_qty: int, file: UploadFile = File(...)
+):
+    enforce_rate_limit(request)
+    content = await file.read()
+    check_image_size(len(content))
+
+    try:
+        from shoptalk.counting.count import verify_quantity
+    except ImportError:
+        raise HTTPException(
+            status_code=501, detail="quantity validation not available -- see docs/model_cards/quantity_counting.md"
+        )
+
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+    try:
+        result = verify_quantity(tmp_path, order_item_id, claimed_qty, cfg=_state["cfg"])
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    return QuantityCheckResponse(
+        verdict=result["verdict"],
+        claimed_qty=claimed_qty,
+        detected_count=result.get("detected_count"),
+        matched_class=result.get("matched_class"),
+        message=result.get("message"),
         order_item_id=order_item_id,
         request_id=str(uuid.uuid4()),
     )

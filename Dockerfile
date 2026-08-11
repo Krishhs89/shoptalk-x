@@ -25,7 +25,7 @@ ENV PATH=/home/shoptalk/.local/bin:$PATH \
 COPY configs/ configs/
 COPY src/ src/
 
-RUN mkdir -p data/processed data/chroma data/logs data/verification && \
+RUN mkdir -p data/processed data/chroma data/logs data/verification data/counting && \
     chown -R shoptalk:shoptalk /app
 
 USER shoptalk

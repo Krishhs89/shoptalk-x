@@ -85,6 +85,14 @@ verification:
   batch_size: 32
   seed: 42
 
+counting:
+  yolo_model: "yolov8n.pt"    # pretrained (COCO, 80 classes), auto-downloaded by ultralytics on first use --
+                               # no custom counting model, since there's no labeled counting dataset for this catalog
+  weights_dir: "data/counting"
+  device: "auto"
+  conf_threshold: 0.35        # per-detection confidence floor before a box counts toward the total
+  suspect_margin: 1           # |detected - claimed| <= this routes to "suspect" (human review), not an auto "mismatch"
+
 personalization:
   interactions_path: "data/personalization/interactions.jsonl"
   num_synthetic_users: 50

@@ -54,6 +54,21 @@ class VerifyResponse(BaseModel):
     request_id: str
 
 
+class QuantityCheckRequest(BaseModel):
+    order_item_id: str = Field(..., description="item_id of the ordered product")
+    claimed_qty: int = Field(..., ge=1, le=100, description="quantity the customer claims to have received")
+
+
+class QuantityCheckResponse(BaseModel):
+    verdict: str  # "match" | "mismatch" | "suspect" | "unsupported"
+    claimed_qty: int
+    detected_count: Optional[int] = None
+    matched_class: Optional[str] = None
+    message: Optional[str] = None
+    order_item_id: str
+    request_id: str
+
+
 class FeedbackRequest(BaseModel):
     request_id: str
     rating: int = Field(..., description="+1 (thumbs up) or -1 (thumbs down)")

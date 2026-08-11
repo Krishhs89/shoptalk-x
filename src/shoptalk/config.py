@@ -26,6 +26,8 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> dict:
     if "verification" in cfg:
         cfg["verification"]["pairs_path"] = str(REPO_ROOT / cfg["verification"]["pairs_path"])
         cfg["verification"]["model_path"] = str(REPO_ROOT / cfg["verification"]["model_path"])
+    if "counting" in cfg:
+        cfg["counting"]["weights_dir"] = str(REPO_ROOT / cfg["counting"]["weights_dir"])
     if "personalization" in cfg:
         cfg["personalization"]["interactions_path"] = str(
             REPO_ROOT / cfg["personalization"]["interactions_path"]

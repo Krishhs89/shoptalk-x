@@ -1,6 +1,7 @@
 # RAG + LLM serving + FastAPI backend (Day 4) -- shoptalk.rag.*, shoptalk.api.*
 # (Ollama itself is a separate binary/container, not a pip package -- see README)
 -r eval.txt
+-r counting.txt
 langchain-core==0.3.29
 langchain-ollama==0.2.2
 fastapi==0.115.6
