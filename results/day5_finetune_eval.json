@@ -1,0 +1,1 @@
+{"base_model": {"recall@10": 0.71525, "recall@50": 0.91}, "finetuned_model": {"recall@10": 0.8321666666666667, "recall@50": 0.9201666666666667}}
