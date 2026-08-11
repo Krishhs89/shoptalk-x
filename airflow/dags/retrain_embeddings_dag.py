@@ -60,6 +60,25 @@ def task_rebuild_golden_set(**context):
     generate_golden_set_main()
 
 
+def _run_subprocess(cmd: list) -> None:
+    """subprocess.run(cmd, check=True) alone is not enough here: the child's
+    stdout/stderr turned out NOT to reach Airflow's task log at all (a real
+    5-minute gap in the log between "starting" and "failed with exception",
+    zero lines of the actual script's output in between) -- Airflow's log
+    capture intercepts this PROCESS's sys.stdout, not an unrelated child
+    process's own stdout at the OS level. Capturing explicitly and printing
+    it ourselves is what actually gets it into the task log, which is the
+    only way to see what a failure here really was instead of just a bare
+    CalledProcessError with no detail."""
+    import subprocess
+
+    result = subprocess.run(cmd, cwd="/opt/shoptalk", capture_output=True, text=True)
+    print(result.stdout)
+    if result.returncode != 0:
+        print(result.stderr)
+        raise RuntimeError(f"{cmd} exited {result.returncode}; see stdout/stderr above")
+
+
 def task_finetune_embeddings(**context):
     # subprocess, not an in-process import+call -- caught for real: calling
     # finetune_main() directly inside Airflow's long-lived task-runner
@@ -80,13 +99,7 @@ def task_finetune_embeddings(**context):
     # holding the GPU for the LLM, the API's own CLIP/BLIP/reranker models)
     # -- see docker-compose.airflow.yml's CUDA_VISIBLE_DEVICES note for the
     # GPU-contention hang this also avoids.
-    import subprocess
-
-    subprocess.run(
-        ["python", "-m", "shoptalk.embeddings.finetune_text", "--device", "cpu", "--batch-size", "8"],
-        check=True,
-        cwd="/opt/shoptalk",
-    )
+    _run_subprocess(["python", "-m", "shoptalk.embeddings.finetune_text", "--device", "cpu", "--batch-size", "8"])
 
 
 def task_evaluate_and_promote(**context):
@@ -95,7 +108,6 @@ def task_evaluate_and_promote(**context):
     actually improves -- the CI-style regression gate from design doc §7.2
     ("every model/prompt change evaluated against it before promotion")."""
     import json
-    import subprocess
     from pathlib import Path
 
     import mlflow
@@ -111,11 +123,7 @@ def task_evaluate_and_promote(**context):
     # the kind of work observed leaking memory inside Airflow's long-lived
     # task-runner process. eval_finetune.py already writes both a markdown
     # report and (as of this fix) a JSON summary this task reads back.
-    subprocess.run(
-        ["python", "-m", "shoptalk.embeddings.eval_finetune", "--finetuned-path", finetuned_path],
-        check=True,
-        cwd="/opt/shoptalk",
-    )
+    _run_subprocess(["python", "-m", "shoptalk.embeddings.eval_finetune", "--finetuned-path", finetuned_path])
     results_dir = Path(cfg["eval"]["results_dir"])
     metrics = json.loads((results_dir / "day5_finetune_eval.json").read_text())
     base_recall = metrics["base_model"]["recall@10"]
