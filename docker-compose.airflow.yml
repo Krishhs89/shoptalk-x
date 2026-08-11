@@ -26,7 +26,16 @@ services:
       - airflow-metadata:/opt/airflow
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      MLFLOW_TRACKING_URI: "http://host.docker.internal:5000"
+      # Port 5001, not 5000 -- this repo's own docker-compose.yml publishes
+      # MLflow on host port 5001 (5000 collides with macOS's AirPlay
+      # Receiver on a Mac; kept consistent across environments rather than
+      # branching the port by OS).
+      MLFLOW_TRACKING_URI: "http://host.docker.internal:5001"
+    # host.docker.internal only resolves automatically on Docker Desktop
+    # (Mac/Windows); native Linux Docker Engine (e.g. this project's EC2
+    # deployment) needs this extra_hosts entry to route it to the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: standalone
 
 volumes:
