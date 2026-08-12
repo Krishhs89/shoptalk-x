@@ -81,9 +81,13 @@ alongside it, plus the offline data/MLOps pipeline underneath.
   locally.
 - CI/CD: lint → test → build → push → deploy, gated safely (skips
   cloud steps without credentials rather than failing).
-- AWS EC2 steps fully documented (`docs/deployment/aws_ec2.md`) —
-  state plainly whether this was actually deployed to AWS for the demo or
-  run locally, and why (cost/scope decision, not a limitation of the code).
+- **Actually deployed to AWS EC2** (`g4dn.xlarge`, see
+  `docs/deployment/aws_ec2.md`) — not just documented; the full stack and
+  the retraining DAG were both run live on that instance. Worth mentioning
+  what that surfaced that local-only testing wouldn't have: real memory
+  constraints (needed a swap file), a real in-process-vs-subprocess memory
+  leak in the DAG, real cross-container file-permission issues — the kind
+  of thing that only shows up under an actual deployment, not a demo.
 
 ## 12. Honest limitations (own this slide, don't skip it)
 - Synthetic pricing (ABO has none) — clearly flagged everywhere in the code
@@ -94,11 +98,18 @@ alongside it, plus the offline data/MLOps pipeline underneath.
   cite `results/day6_latency_report.md`'s honest caveat, and give the
   *retrieval-side* numbers (which are hardware-independent-ish) rather than
   end-to-end LLM latency if that's what you actually measured.
-- Not built: quantity validation (YOLO-based order-count check) — name it
-  as the acknowledged, largest remaining stretch item.
+- Quantity validation is built but narrow: a **pretrained** YOLOv8n (COCO,
+  80 classes) only covers a fraction of this catalog's ~50 fine-grained
+  categories (CELLULAR_PHONE_CASE alone is 52.8% of the catalog and has no
+  COCO equivalent) — say so plainly, don't let "built" imply "covers
+  everything." See `docs/model_cards/quantity_counting.md`.
 
 ## 13. What's next
-- Quantity validation (BinSense-style order fulfillment check).
+- Fine-tune YOLO on catalog-specific categories (or a purpose-built
+  counting head) to widen quantity-validation coverage beyond COCO's 80
+  generic classes — the design doc's original per-ASIN counting pipeline
+  (§ "Extend verification to full order validation") is a larger version
+  of this same idea.
 - LLM LoRA/QLoRA fine-tuning execution (code delivered, not run — see
   `docs/finetuning/llm_lora_qlora.md`).
 - Kubernetes deployment (k3s steps documented, not executed).
