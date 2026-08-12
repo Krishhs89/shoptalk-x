@@ -54,9 +54,9 @@ account.
 ```bash
 ssh -i shoptalk-x-gpu.pem ubuntu@<instance-public-ip>
 
+cd ~   # /home/ubuntu -- `git clone` below creates /home/ubuntu/shoptalk-x directly
 git clone https://github.com/Krishhs89/shoptalk-x.git
-sudo mkdir -p /opt/shoptalk-x && sudo chown ubuntu:ubuntu /opt/shoptalk-x
-mv shoptalk-x/* shoptalk-x/.[!.]* /opt/shoptalk-x/ 2>/dev/null; cd /opt/shoptalk-x
+cd shoptalk-x
 
 # verify GPU is visible to Docker
 docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
@@ -101,21 +101,26 @@ them:
 
 ```bash
 scp -i shoptalk-x-gpu.pem -r data/processed data/chroma data/models data/verification \
-    ubuntu@<instance-public-ip>:/opt/shoptalk-x/data/
+    ubuntu@<instance-public-ip>:/home/ubuntu/shoptalk-x/data/
 ```
 
 ### 3a. File permissions — needed before Airflow can write here
 
 If you also run the Airflow retraining stack (step 7) against this same
-`data/` directory, its container runs as `uid=50000 gid=0` while
-directly-`scp`'d files are typically owned by `ubuntu:ubuntu` with no
-group/other write bit. This surfaces as `PermissionError: [Errno 13]
-Permission denied` on the exact directory Airflow tries to save a new
-model into (`data/models/bge-finetuned/...`), *after* training has already
-completed — an expensive way to fail. Pre-empt it once:
+checkout, its container runs as `uid=50000 gid=0` while directly-`scp`'d or
+`git clone`'d files are typically owned by `ubuntu:ubuntu` with no
+group/other write bit. This bit twice, in two different directories, both
+*after* the expensive part had already finished — the DAG's compute (13
+minutes of fine-tuning, ~70 minutes of full-catalog re-encoding for
+evaluation) completed successfully both times, only to fail writing the
+output: first `PermissionError: ... 'data/models/bge-finetuned/
+config_sentence_transformers.json'` (saving the new model), then the same
+error on `results/day5_finetune_eval.md` (writing the eval report) once
+that first one was fixed. Pre-empt both at once, on both directories the
+DAG writes to:
 
 ```bash
-sudo chmod -R a+rwX /opt/shoptalk-x/data
+sudo chmod -R a+rwX /home/ubuntu/shoptalk-x/data /home/ubuntu/shoptalk-x/results
 ```
 
 ## 4. Enable GPU passthrough and bring the serving stack up
@@ -124,7 +129,7 @@ sudo chmod -R a+rwX /opt/shoptalk-x/data
 file) that adds the `nvidia` GPU reservation to `ollama`:
 
 ```bash
-cd /opt/shoptalk-x
+cd /home/ubuntu/shoptalk-x
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d ollama
 docker compose exec ollama ollama pull llama3.1:8b-instruct-q4_0
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build api ui mlflow
