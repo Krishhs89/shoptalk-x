@@ -14,11 +14,14 @@ conversational text/photo search over a ~10k-product catalog, plus a
 - **Original spec + design rationale** → [docs/ShopTalk-X_Production_Design_Document.md](docs/ShopTalk-X_Production_Design_Document.md)
 - **Presentation outline** → [docs/PRESENTATION_OUTLINE.md](docs/PRESENTATION_OUTLINE.md)
 
-Status: **all 7 build days complete** (core pipeline, RAG service, frontend,
-deployment/MLOps, docs) plus the personalization and voice-input stretch
-goals. Quantity validation (YOLO-based order-count check) was not attempted
-— see the functional overview's status table for the full breakdown of
-what's built vs. documented-only vs. not attempted, and why.
+Status: **all 7 build days complete, plus production hardening** (core
+pipeline, RAG service, frontend, deployment/MLOps, docs, personalization
+and voice-input stretch goals, and — as of the production-hardening pass —
+a live AWS EC2 deployment, an Airflow retraining DAG that has actually run
+end-to-end, and quantity/count validation via a pretrained YOLO detector).
+See [docs/PROJECT_EXPLAINED.md](docs/PROJECT_EXPLAINED.md) for the full
+story — requirements, approach, tools, problems hit and how they were
+solved, and what a real-world team would do next.
 
 ## Quickstart
 
