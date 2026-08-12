@@ -14,6 +14,17 @@ RUN pip install --no-cache-dir --user -r requirements/serving.txt
 
 FROM python:3.11-slim
 
+# ultralytics (quantity validation, shoptalk.counting.*) depends on regular
+# opencv-python, not the headless variant -- it needs these shared libs at
+# import time even though nothing here ever opens a GUI window. Confirmed
+# for real: without them, `import cv2` fails with
+# "ImportError: libxcb.so.1: cannot open shared object file" the first time
+# /verify/quantity is actually called (the import is deferred, so this
+# doesn't surface until then, not at container startup).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 libxcb1 libxrender1 libxext6 libsm6 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --create-home --uid 1000 shoptalk
 WORKDIR /app
 
