@@ -18,7 +18,7 @@ Actual instance used this deployment:
 | Type | `g4dn.xlarge` (1x NVIDIA T4, 4 vCPU, 16GB RAM) |
 | AMI | `ami-0b6f2229ad14c9323` (Deep Learning AMI, Ubuntu — ships with NVIDIA drivers + `nvidia-container-toolkit` preinstalled) |
 | Region | `us-east-1` |
-| Storage | 90GB gp3 |
+| Storage | 150GB gp3 (started at 90GB; grown once — see "Deploying a new dependency" below) |
 | Key pair | `shoptalk-x-gpu` |
 | Security group | `sg-00e8586a3ab415beb` |
 
@@ -236,7 +236,7 @@ aws ec2 start-instances --instance-ids i-02615f77f0cbf82be
 IP after restarting. A **reboot** (`aws ec2 reboot-instances`) keeps the
 same IP if you just need to restart the OS without the IP changing.
 
-A stopped instance still bills for its 90GB gp3 EBS volume (~$7/month) but
+A stopped instance still bills for its 150GB gp3 EBS volume (~$12/month) but
 not compute. Terminate (`aws ec2 terminate-instances`) once you no longer
 need it.
 
@@ -262,6 +262,50 @@ docker compose pull api   # or: docker pull <ecr-repo>:<previous-sha>
 docker tag <ecr-repo>:<previous-sha> <ecr-repo>:latest
 docker compose up -d api
 ```
+
+## Deploying a new dependency (e.g. the quantity-validation feature)
+
+Adding `ultralytics` (for `shoptalk.counting.*`) to `requirements/serving.txt`
+and rebuilding the API image on this instance surfaced two real,
+instance-specific problems worth knowing about before doing this again:
+
+- **The 90GB root EBS volume is too small once a heavy new dependency is
+  added.** `ultralytics` pulls in a full CUDA 13 toolkit via `torch`'s
+  split-wheel packaging (`nvidia-cublas`, `nvidia-cudnn`, etc. — several GB
+  of wheels), and the build failed twice with `no space left on device`,
+  first during the pip install's temp files, then again extracting a
+  layer. The instance also has a large second NVMe volume (~116GB, free
+  with the `g4dn.xlarge`, mounted at `/opt/dlami/nvme`) — resist the
+  temptation to just relocate Docker's data-root there instead of growing
+  the EBS volume: that volume is **ephemeral instance store**, wiped on
+  every stop/start (not reboot), and this doc's own §8 cost-control
+  workflow *is* a stop/start cycle — you'd silently lose every image on
+  the next "stop when not demoing." Grow the persistent EBS volume instead:
+  ```bash
+  aws ec2 modify-volume --volume-id <vol-id> --size 150   # gp3, ~$0.08/GB-month, trivial cost
+  # wait for ModificationState to reach "optimizing" (usable immediately, background-optimizes further)
+  sudo growpart /dev/nvme0n1 1     # confirm device/partition via lsblk first
+  sudo resize2fs /dev/nvme0n1p1
+  ```
+- **`ultralytics` needs `opencv-python` (not headless), which needs system
+  shared libs the slim base image doesn't have** — surfaces as
+  `ImportError: libxcb.so.1: cannot open shared object file`, and only on
+  the *first actual call* that imports it (the import is deliberately
+  deferred in `count.py`), not at container startup or in `/health`. The
+  Dockerfile now installs `libgl1 libglib2.0-0 libxcb1 libxrender1
+  libxext6 libsm6` in the runtime stage for this reason — don't remove
+  them.
+- **A freshly-retrained model checkpoint can be unreadable by the serving
+  container even after the `data/` chmod fix in §3a** — that chmod only
+  fixes files that exist *at the time you run it*. A file the Airflow
+  container creates *afterward* (e.g. a new `model.safetensors` from a
+  later retrain) gets that container's own restrictive default
+  permissions (`rw-------`, owner-only). This surfaced as
+  `FileNotFoundError: model.safetensors` on the API's *next restart*
+  (not immediately — a container that already had the model loaded in
+  memory before the retrain never re-reads the file, so the break is
+  invisible until something restarts). Re-run the §3a chmod after every
+  retrain, or expect to hit this again.
 
 ## Operational lessons (read before debugging a hang on this instance)
 
