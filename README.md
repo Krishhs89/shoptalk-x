@@ -17,11 +17,19 @@ conversational text/photo search over a ~10k-product catalog, plus a
 Status: **all 7 build days complete, plus production hardening** (core
 pipeline, RAG service, frontend, deployment/MLOps, docs, personalization
 and voice-input stretch goals, and — as of the production-hardening pass —
-a live AWS EC2 deployment, an Airflow retraining DAG that has actually run
-end-to-end, and quantity/count validation via a pretrained YOLO detector).
-See [docs/PROJECT_EXPLAINED.md](docs/PROJECT_EXPLAINED.md) for the full
-story — requirements, approach, tools, problems hit and how they were
-solved, and what a real-world team would do next.
+a fine-tuned model wired into serving, an Airflow retraining DAG that has
+actually run end-to-end and promoted a measurably better model, and
+quantity/count validation via a pretrained YOLO detector, all verified
+live in a real AWS EC2 deployment). **The AWS instance itself is currently
+unreachable** as of 2026-08-13 — the training-lab AWS account lost API/SSH
+access (see [docs/deployment/aws_ec2.md](docs/deployment/aws_ec2.md)'s
+status note) — this is an external lab-account issue, not a defect in the
+app; the local/offline Docker deployment
+([docs/deployment/offline_production.md](docs/deployment/offline_production.md))
+is unaffected and redeployment to AWS is a same-day task once fresh
+credentials exist. See [docs/PROJECT_EXPLAINED.md](docs/PROJECT_EXPLAINED.md)
+for the full story — requirements, approach, tools, problems hit and how
+they were solved, and what a real-world team would do next.
 
 ## Quickstart
 

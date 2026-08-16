@@ -78,10 +78,20 @@ designed with that asymmetry in mind — see §2.3 and §2.4.
 
 ### 1.4 What's real right now, in plain terms
 
-As of this writing, this is not a slide deck — it's a running system:
+This was not a slide deck — it was a genuinely running system, fully
+verified live:
 
-- A live web app on Amazon's cloud (AWS), reachable over the internet,
-  serving a ~10,000-product real catalog.
+- A web app on Amazon's cloud (AWS), reachable over the internet, serving
+  a ~10,000-product real catalog — verified with real requests (search,
+  photo verification, quantity checks) all returning correct results.
+  **Update, 2026-08-13:** the training-lab AWS account this ran on lost
+  API and SSH access (an external lab-account expiration, not a defect in
+  the app — see [deployment/aws_ec2.md](deployment/aws_ec2.md)'s status
+  note); re-checked 2026-08-16, still unreachable. Everything that made
+  this work — code, Docker images, documented deployment steps — is
+  unaffected and ready to redeploy the moment fresh AWS access exists. The
+  local/offline deployment (§ [deployment/offline_production.md](deployment/offline_production.md))
+  is unrelated infrastructure and still works today.
 - An automated "retraining" process that already ran for real: it
   re-studied the product catalog, produced a measurably smarter search
   model (see §5), and only kept the new version because it proved to be

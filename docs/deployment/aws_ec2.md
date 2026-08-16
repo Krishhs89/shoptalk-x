@@ -1,11 +1,30 @@
 # AWS EC2 Deployment Guide (Online Production)
 
-**Status: live.** This has been executed for real — not just documented —
-on a `g4dn.xlarge` instance running the full stack (API, UI, MLflow,
-Ollama) plus a separate Airflow retraining stack. Everything below reflects
-what was actually run, including the instance-level configuration (swap,
-file permissions) that isn't captured anywhere in git because it lives on
-the host, not in the repo.
+**Status: was live; currently unreachable due to lab-account access loss
+(as of 2026-08-13).** This was executed for real, not just documented — a
+`g4dn.xlarge` instance ran the full stack (API, UI, MLflow, Ollama) plus a
+separate Airflow retraining stack, verified live end-to-end (see
+[PROJECT_EXPLAINED.md](../PROJECT_EXPLAINED.md) for the evidence). As of
+2026-08-13, the lab AWS account (`ik_mlsu_end_aug25cohort_g7`, a
+time-boxed Nuvepro/cloudlabs training sandbox) started returning an
+explicit IAM deny on `ec2:DescribeInstances`, and the instance itself
+(`i-02615f77f0cbf82be`, last known IP `100.48.71.36`) stopped responding
+to SSH entirely (connection timeout, not refused) — consistent with the
+lab's access window expiring or the account being deprovisioned
+server-side, not with anything wrong in this repo's code or
+configuration. Re-checked as of 2026-08-16: no change, same two symptoms.
+
+**This is not a regression to fix in code** — everything below remains
+the accurate, tested procedure for standing the deployment back up. Once
+fresh AWS credentials/access exist (either a renewed lab account or a
+different AWS account), redeploying is: launch a same-spec instance,
+follow steps 1-7 below verbatim, restore the swap file and `data/`/`results/`
+permissions from §2a/§3a, and everything else — the git history, the
+Docker images' build recipes, the fine-tuned model artifacts pattern —
+is unchanged and ready to go. Everything below reflects what was actually
+run, including the instance-level configuration (swap, file permissions)
+that isn't captured anywhere in git because it lives on the host, not in
+the repo.
 
 ## 1. Launch the instance
 
