@@ -22,6 +22,14 @@ from shoptalk.retrieval.search import BGE_QUERY_INSTRUCTION
 
 
 def recall_at_k(model: SentenceTransformer, products_df: pd.DataFrame, golden_set: list, k_values: list) -> dict:
+    """Recall@k (fraction of THIS query's positives found in the top k) and
+    Precision@k (fraction of the top k that are positives -- the submission
+    guideline's "percent of relevant results (True positives) from the
+    retrieved results"). Precision@k reads much lower than Recall@k here by
+    construction: most golden-set queries have only 1-2 labeled positives
+    (capping Precision@10 at 0.1-0.2 even for a perfect retrieval), while a
+    handful have up to 8 -- see the golden set's own positives-per-query
+    distribution, not a sign retrieval is worse than Recall@k suggests."""
     doc_embeddings = model.encode(
         products_df["document"].tolist(), normalize_embeddings=True, show_progress_bar=True, batch_size=64
     )
@@ -37,6 +45,7 @@ def recall_at_k(model: SentenceTransformer, products_df: pd.DataFrame, golden_se
     with np.errstate(all="ignore"):
         sims = query_embeddings @ doc_embeddings.T
     recalls = {k: [] for k in k_values}
+    precisions = {k: [] for k in k_values}
     for i, row in enumerate(golden_set):
         positives = set(row["positive_ids"]) & set(item_ids)
         if not positives:
@@ -44,8 +53,12 @@ def recall_at_k(model: SentenceTransformer, products_df: pd.DataFrame, golden_se
         ranked_idx = np.argsort(-sims[i])
         for k in k_values:
             top_k_ids = {item_ids[j] for j in ranked_idx[:k]}
-            recalls[k].append(len(top_k_ids & positives) / len(positives))
-    return {f"recall@{k}": (float(np.mean(v)) if v else 0.0) for k, v in recalls.items()}
+            hits = len(top_k_ids & positives)
+            recalls[k].append(hits / len(positives))
+            precisions[k].append(hits / k)
+    metrics = {f"recall@{k}": (float(np.mean(v)) if v else 0.0) for k, v in recalls.items()}
+    metrics.update({f"precision@{k}": (float(np.mean(v)) if v else 0.0) for k, v in precisions.items()})
+    return metrics
 
 
 def main():
@@ -74,16 +87,22 @@ def main():
     ft_model = SentenceTransformer(args.finetuned_path)
     ft_metrics = recall_at_k(ft_model, products_df, golden_set, k_values)
 
+    metric_names = [f"recall@{k}" for k in k_values] + [f"precision@{k}" for k in k_values]
     table = pd.DataFrame(
         {
-            "metric": [f"recall@{k}" for k in k_values],
-            "base_model": [base_metrics[f"recall@{k}"] for k in k_values],
-            "finetuned_model": [ft_metrics[f"recall@{k}"] for k in k_values],
+            "metric": metric_names,
+            "base_model": [base_metrics[m] for m in metric_names],
+            "finetuned_model": [ft_metrics[m] for m in metric_names],
         }
     )
     table["uplift"] = table["finetuned_model"] - table["base_model"]
     print("\n=== Fine-tune uplift ===")
     print(table.to_string(index=False))
+    print(
+        "\nNote: Precision@k is much lower than Recall@k on this golden set by "
+        "construction -- most queries have only 1-2 labeled positives, capping "
+        "Precision@10 well below 1.0 even for perfect retrieval."
+    )
 
     results_dir = Path(cfg["eval"]["results_dir"])
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -92,7 +111,13 @@ def main():
         f.write("# Day 5 — Embedding fine-tune evaluation\n\n")
         f.write(f"Golden set: {len(golden_set)} queries\n\n")
         f.write(table.to_markdown(index=False))
-        f.write("\n")
+        f.write(
+            "\n\n> Precision@k is much lower than Recall@k here by construction, "
+            "not because retrieval is weaker than Recall@k suggests -- most "
+            "golden-set queries have only 1-2 labeled positives, which caps "
+            "Precision@10 at 0.1-0.2 even for perfect retrieval; a handful of "
+            "queries with up to 8 positives pull the average up from there.\n"
+        )
     print(f"\nwrote {md_path}")
 
     # Machine-readable twin of the markdown table -- so a caller (e.g. the

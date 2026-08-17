@@ -1,7 +1,15 @@
 """
 Runs the golden eval set through stage-1-only retrieval and full two-stage
-(stage-1 + cross-encoder rerank), computes Recall@10/50/100, MRR, and NDCG@10
-via ranx for both, and logs an uplift comparison to MLflow.
+(stage-1 + cross-encoder rerank), computes Precision@10, Recall@10/50/100,
+MRR, and NDCG@10 via ranx for both, and logs an uplift comparison to MLflow.
+
+Precision@10 here means: of the top-10 retrieved results, what fraction are
+in that query's positive set (the submission guideline's "percent of
+relevant results (True positives) from the retrieved results"). It reads
+much lower than Recall@10 on this golden set by construction, not because
+retrieval is worse than it looks: most queries have only 1-2 labeled
+positives (max possible Precision@10 = 0.1-0.2), while a handful have up to
+8 (max possible Precision@10 = 0.8) -- see the results file's own note.
 
 Both runs reuse the SAME stage-1 top-100 candidate pool per query (the
 reranker only reorders it) -- so Recall@100 should come out ~identical
@@ -27,7 +35,7 @@ from shoptalk.config import load_config
 from shoptalk.retrieval.rerank import rerank
 from shoptalk.retrieval.search import search as stage1_search
 
-METRICS = ["recall@10", "recall@50", "recall@100", "mrr", "ndcg@10"]
+METRICS = ["precision@10", "recall@10", "recall@50", "recall@100", "mrr", "ndcg@10"]
 
 
 def load_golden_set(path: Path, limit: int = None) -> list:
@@ -98,9 +106,23 @@ def main():
     md_path = results_dir / "day2_retrieval_eval.md"
     with open(md_path, "w") as f:
         f.write("# Day 2 — Two-stage retrieval evaluation\n\n")
-        f.write(f"Golden set: {len(queries)} queries ({golden_set_path})\n\n")
+        f.write(f"Golden set: {len(queries)} queries ({golden_set_path})\n")
+        f.write(f"Stage-1 embedding model: `{cfg['embeddings']['text_model']}`\n\n")
         f.write(table.to_markdown(index=False))
-        f.write("\n")
+        f.write(
+            "\n\n> **Reading the uplift_pct column:** the reranker's uplift over "
+            "stage-1 shrinks whenever stage-1 itself gets better -- e.g. after "
+            "the fine-tuned embedding model is wired into serving (see Day 5), "
+            "stage-1 alone already recovers most of the relevant results, so "
+            "the reranker has less room left to add on top. A smaller uplift_pct "
+            "here is a sign the *upstream* model improved, not that reranking "
+            "stopped working -- compare against `git log` on this file to see "
+            "the pre-fine-tune baseline uplift for context.\n"
+            "> **Precision@10 vs Recall@10:** Precision@10 is naturally much "
+            "lower -- most golden-set queries have only 1-2 labeled positives, "
+            "capping Precision@10 at 0.1-0.2 even for perfect retrieval; a few "
+            "queries with up to 8 positives pull the average above that floor.\n"
+        )
     print(f"\nwrote {md_path}")
 
     mlflow.set_tracking_uri(mcfg["tracking_uri"])
