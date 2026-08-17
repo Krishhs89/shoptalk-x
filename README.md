@@ -13,6 +13,8 @@ conversational text/photo search over a ~10k-product catalog, plus a
 - **Per-model details** → [docs/model_cards/](docs/model_cards/)
 - **Original spec + design rationale** → [docs/ShopTalk-X_Production_Design_Document.md](docs/ShopTalk-X_Production_Design_Document.md)
 - **Presentation outline** → [docs/PRESENTATION_OUTLINE.md](docs/PRESENTATION_OUTLINE.md)
+- **Real generative-answer examples, including a documented failure mode** → [docs/QUALITATIVE_EVALUATION.md](docs/QUALITATIVE_EVALUATION.md)
+- **Demo video recording script** → [docs/VIDEO_RECORDING_SCRIPT.md](docs/VIDEO_RECORDING_SCRIPT.md)
 
 Status: **all 7 build days complete, plus production hardening** (core
 pipeline, RAG service, frontend, deployment/MLOps, docs, personalization

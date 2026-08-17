@@ -404,6 +404,18 @@ logged to files still in this repository — nothing here is an estimate.
 - **A full container-orchestration deployment (Kubernetes) was scoped out**
   in favor of a single well-documented instance — the right call for this
   project's scale, but a real growth-stage product would eventually need it.
+- **Conversation history doesn't yet reformulate the retrieval query** —
+  found live, not in a design review: the LLM's *answer* correctly uses
+  prior turns (it carries over constraints like a price ceiling without
+  them being repeated), but *retrieval* always embeds only the current
+  turn's raw text. A follow-up like "anything cheaper than that?" — no
+  product category restated — retrieves irrelevant candidates, because
+  nothing rewrites "that" into what it refers to before the search runs.
+  A follow-up that restates its own subject ("black sneakers instead")
+  works correctly. See
+  [QUALITATIVE_EVALUATION.md](QUALITATIVE_EVALUATION.md) examples 3-4 for
+  the side-by-side failure and success, with the exact request/response
+  pairs.
 
 ---
 
@@ -411,27 +423,32 @@ logged to files still in this repository — nothing here is an estimate.
 
 Roughly in priority order, if this were to continue as a real product:
 
-1. **Close the human-feedback loop.** Thumbs-up/thumbs-down feedback is
+1. **Add query reformulation before retrieval**, using conversation
+   history — the single most concrete, well-understood gap found this
+   pass (see Part 6). A standard fix: before embedding a follow-up query,
+   have the LLM rewrite it into a self-contained query using the prior
+   turn(s), the way many production RAG systems handle multi-turn search.
+2. **Close the human-feedback loop.** Thumbs-up/thumbs-down feedback is
    already captured and logged; the next step is feeding it back into what
    the retraining pipeline learns from, not just storing it.
-2. **Widen quantity-validation coverage.** Either fine-tune the object
+3. **Widen quantity-validation coverage.** Either fine-tune the object
    detector on catalog-specific categories, or invest in a small labeled
    counting dataset for the highest-value product categories first.
-3. **Real alerting, not just detection.** Drift detection already works;
+4. **Real alerting, not just detection.** Drift detection already works;
    wiring its output into an actual paging/notification system (e.g.
    Slack, PagerDuty) is what turns "we could have caught this" into
    "we did catch this."
-4. **Per-category confidence calibration** for the verification and
+5. **Per-category confidence calibration** for the verification and
    quantity-check "suspect" bands — right now the same fixed margin applies
    everywhere; some product categories are inherently harder to compare
    visually than others and would benefit from their own calibrated
    threshold.
-5. **Execute the LoRA fine-tuning step for real** on real GPU time, closing
+6. **Execute the LoRA fine-tuning step for real** on real GPU time, closing
    the last "documented, not executed" item.
-6. **Load-test against real (GPU) infrastructure** — the current latency
+7. **Load-test against real (GPU) infrastructure** — the current latency
    numbers were captured on CPU-only hardware and explicitly flagged as not
    representative of a real deployment target.
-7. **Automate the operational gotchas found in Part 4** rather than
+8. **Automate the operational gotchas found in Part 4** rather than
    documenting them as manual steps — e.g., have the retraining pipeline
    fix its own file permissions after every run, instead of relying on a
    person remembering to.

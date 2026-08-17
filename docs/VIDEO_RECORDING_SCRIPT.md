@@ -53,9 +53,19 @@ screen.
 > "The whole point of this is that keyword search fails on a query like
 > this—"
 
-  - Type exactly: **"a red shirt for men under 50 dollars"** — this is
-    the literal example from the project's own problem statement, worth
-    using verbatim.
+  - Type: **"red sneakers for men under 150 dollars"** — verified live
+    against this actual catalog build (see
+    [QUALITATIVE_EVALUATION.md](QUALITATIVE_EVALUATION.md)'s example 1) —
+    it correctly grounds on real matching products and respects the price
+    constraint. **Don't use the project problem statement's literal "red
+    shirt for men under 50 dollars" example** — this catalog's random
+    10k-product sample happens to contain zero men's shirts of any color,
+    so that exact query returns an honest "I don't see a match" instead
+    of a product, which is correct system behavior but a flat demo
+    moment. Any color+category+price query works as a stand-in — just
+    confirm the category exists in your build first (`grep -i <category>`
+    over `data/processed/products.parquet`, or reuse the verified example
+    here).
   - Let it fully answer. Point at the answer text, then the product
     cards below it.
 
@@ -74,9 +84,19 @@ screen.
 > "It also remembers the conversation. Let me ask a follow-up without
 > repeating context."
 
-  - Type a genuine follow-up, e.g. **"what about in blue instead?"** or
-    **"anything cheaper than that?"**
-  - Let it answer, pointing out it understood "that" / "instead" from the
+  - Type: **"what about black sneakers for men instead?"** — verified
+    live (example 3 in [QUALITATIVE_EVALUATION.md](QUALITATIVE_EVALUATION.md)).
+    **Avoid pure-pronoun follow-ups like "anything cheaper than that?"**
+    with nothing else restated — tested live and it genuinely fails:
+    retrieval only ever embeds the current turn's raw text (confirmed in
+    `api/main.py`), so a follow-up needs to restate the subject
+    ("sneakers," "that jacket," etc.) for retrieval to find the right
+    candidates, even though the LLM's *answer* does correctly use full
+    conversation history. Keep the follow-up self-contained in what it's
+    asking for, and it demonstrates the history feature working
+    correctly — carrying over the earlier "under $150" constraint without
+    restating it.
+  - Let it answer, pointing out it understood "instead" / carried over the
     prior turn.
 
 > "This is backed by real conversation history, not just prompt stuffing
