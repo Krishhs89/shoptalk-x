@@ -50,5 +50,8 @@ def test_feedback_request_optional_comment():
 
 
 def test_verify_response_roundtrip():
-    resp = VerifyResponse(verdict="match", confidence=0.9, threshold=0.5, order_item_id="B01", request_id="r1")
+    resp = VerifyResponse(
+        verdict="match", confidence=0.9, threshold=0.5, order_item_id="B01", request_id="r1", latency_ms=42.0
+    )
     assert resp.verdict == "match"
+    assert resp.latency_ms == 42.0

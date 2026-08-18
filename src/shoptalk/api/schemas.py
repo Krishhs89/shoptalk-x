@@ -52,6 +52,7 @@ class VerifyResponse(BaseModel):
     threshold: float
     order_item_id: str
     request_id: str
+    latency_ms: float = Field(..., description="wall-clock time for the verification inference call")
 
 
 class QuantityCheckRequest(BaseModel):
@@ -67,6 +68,7 @@ class QuantityCheckResponse(BaseModel):
     message: Optional[str] = None
     order_item_id: str
     request_id: str
+    latency_ms: float = Field(..., description="wall-clock time for the detection inference call")
 
 
 class FeedbackRequest(BaseModel):

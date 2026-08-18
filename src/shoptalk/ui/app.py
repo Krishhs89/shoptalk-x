@@ -13,6 +13,49 @@ import pandas as pd
 import requests
 import streamlit as st
 
+# Theming (colors/font) lives in .streamlit/config.toml; this CSS covers
+# what Streamlit's theme config can't reach -- card layout for product hits,
+# verdict badges, and the header banner.
+CUSTOM_CSS = """
+<style>
+  .stApp { background-color: #FFFFFF; }
+  #stx-hero {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 22px; margin-bottom: 8px;
+      background: linear-gradient(135deg, #1F6E5C 0%, #16523F 100%);
+      border-radius: 10px; color: #FFFFFF;
+  }
+  #stx-hero .stx-title { font-size: 1.5rem; font-weight: 700; margin: 0; line-height: 1.2; }
+  #stx-hero .stx-tagline { font-size: .88rem; opacity: .85; margin-top: 2px; }
+
+  .stx-card {
+      border: 1px solid #E1E5E3; border-radius: 8px; padding: 12px 16px;
+      margin-bottom: 8px; background: #FAFBFA;
+  }
+  .stx-card .stx-name { font-weight: 600; font-size: .95rem; color: #16211D; }
+  .stx-card .stx-id { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: .78rem; color: #6B7A74; }
+  .stx-card .stx-meta {
+      display: flex; gap: 14px; margin-top: 6px; font-size: .8rem; color: #4B5A54;
+      font-variant-numeric: tabular-nums;
+  }
+  .stx-card .stx-price { font-weight: 600; color: #1F6E5C; }
+
+  .stx-badge {
+      display: inline-flex; align-items: center; gap: 7px; font-weight: 700;
+      font-size: 1.05rem; padding: 6px 14px; border-radius: 999px; margin: 4px 0 2px;
+  }
+  .stx-badge.match { background: #E4F3EB; color: #1E7A46; }
+  .stx-badge.mismatch { background: #FBE7E5; color: #B3382C; }
+  .stx-badge.suspect { background: #FDF1DC; color: #A8710F; }
+  .stx-badge.unsupported { background: #EDEFEE; color: #5B6763; }
+
+  .stx-latency {
+      font-family: "SF Mono", Menlo, Consolas, monospace; font-size: .76rem;
+      color: #7C8A84; font-variant-numeric: tabular-nums; margin-top: 4px;
+  }
+</style>
+"""
+
 API_BASE_URL = os.environ.get("SHOPTALK_API_URL", "http://localhost:8000")
 API_KEY = os.environ.get("SHOPTALK_API_KEY")
 # LLM generation is the dominant cost of a search request and varies wildly
@@ -71,11 +114,37 @@ def render_product_hits(hits: list):
         st.caption("No products retrieved.")
         return
     for hit in hits:
-        cols = st.columns([3, 1, 1, 1])
-        cols[0].markdown(f"**{hit['item_name']}**  \n`{hit['item_id']}`")
-        cols[1].caption(hit["category"])
-        cols[2].caption(f"${hit['price_usd']:.2f}")
-        cols[3].caption(f"score {hit['rerank_score']:.2f}")
+        st.markdown(
+            f"""<div class="stx-card">
+                <div class="stx-name">{hit['item_name']}</div>
+                <div class="stx-id">{hit['item_id']}</div>
+                <div class="stx-meta">
+                    <span>{hit['category']}</span>
+                    <span class="stx-price">${hit['price_usd']:.2f}</span>
+                    <span>rerank score {hit['rerank_score']:.2f}</span>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+
+_VERDICT_LABELS = {
+    "match": "MATCH",
+    "mismatch": "MISMATCH",
+    "suspect": "SUSPECT — HUMAN REVIEW",
+    "unsupported": "UNSUPPORTED",
+}
+
+
+def render_verdict_badge(verdict: str):
+    st.markdown(
+        f'<span class="stx-badge {verdict}">{_VERDICT_LABELS.get(verdict, verdict.upper())}</span>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_latency(latency_ms: float, label: str = "response time"):
+    st.markdown(f'<div class="stx-latency">{label}: {latency_ms:.0f}ms</div>', unsafe_allow_html=True)
 
 
 def _transcribe_voice_clip(voice_clip) -> str:
@@ -237,9 +306,11 @@ def chat_search_tab():
         render_llm_text(data["answer"])
         render_product_hits(data["hits"])
         latency = data["latency"]
-        st.caption(
-            f"stage1 {latency['stage1_ms']:.0f}ms · rerank {latency['rerank_ms']:.0f}ms · "
-            f"llm {latency['llm_ms']:.0f}ms · total {latency['total_ms']:.0f}ms"
+        st.markdown(
+            f'<div class="stx-latency">retrieval {latency["stage1_ms"]:.0f}ms · '
+            f'rerank {latency["rerank_ms"]:.0f}ms · llm {latency["llm_ms"]:.0f}ms · '
+            f'total {latency["total_ms"]:.0f}ms</div>',
+            unsafe_allow_html=True,
         )
 
     st.session_state.history.append(
@@ -280,9 +351,9 @@ def verification_tab():
                 st.error(f"Verification failed: {e}")
                 return
 
-        badge = {"match": "🟢", "mismatch": "🔴", "suspect": "🟡"}[result["verdict"]]
-        st.markdown(f"### {badge} {result['verdict'].upper()}")
+        render_verdict_badge(result["verdict"])
         st.caption(f"confidence={result['confidence']:.3f}  threshold={result['threshold']:.3f}")
+        render_latency(result["latency_ms"], "verification time")
         if result["verdict"] == "suspect":
             st.warning("Low-confidence result -- routed to human review, not an automatic accusation.")
 
@@ -324,21 +395,33 @@ def quantity_tab():
                 return
 
         if result["verdict"] == "unsupported":
+            render_verdict_badge("unsupported")
             st.info(result.get("message") or "This product isn't covered by the pretrained detector.")
         else:
-            badge = {"match": "🟢", "mismatch": "🔴", "suspect": "🟡"}[result["verdict"]]
-            st.markdown(f"### {badge} {result['verdict'].upper()}")
+            render_verdict_badge(result["verdict"])
             st.caption(
                 f"claimed={result['claimed_qty']}  detected={result['detected_count']}  "
                 f"class={result['matched_class']}"
             )
             if result["verdict"] == "suspect":
                 st.warning("Close count mismatch -- routed to human review, not an automatic rejection.")
+        render_latency(result["latency_ms"], "detection time")
 
 
 def main():
     st.set_page_config(page_title="ShopTalk-X", page_icon="🛍️", layout="centered")
-    st.title("🛍️ ShopTalk-X")
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    st.markdown(
+        """<div id="stx-hero">
+            <div style="font-size:2rem;">🛍️</div>
+            <div>
+                <p class="stx-title">ShopTalk-X</p>
+                <p class="stx-tagline">Conversational shopping assistant &mdash; search, verify, and
+                    quantity-check, grounded end to end.</p>
+            </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
     health = check_health()
     with st.sidebar:

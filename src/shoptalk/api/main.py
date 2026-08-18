@@ -99,7 +99,44 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ShopTalk-X API", version="0.1.0", lifespan=lifespan)
+API_DESCRIPTION = """
+Conversational shopping assistant over a ~10k-product catalog: natural-language
+and photo search grounded by a two-stage retrieval pipeline (bi-encoder ANN +
+cross-encoder rerank) and an LLM (Llama 3.1 8B via Ollama), plus order
+verification (does the delivered photo match what was ordered?) and quantity
+verification (does the delivered *count* match what was claimed?).
+
+Every response that carries model inference reports its own latency, and every
+verification-style endpoint returns a third **`suspect`** verdict alongside
+`match`/`mismatch` for anything close to the model's decision boundary —
+routed to human review, never resolved automatically.
+
+Full write-up: [PROJECT_DEFINITION.md](https://github.com/Krishhs89/shoptalk-x/blob/master/docs/PROJECT_DEFINITION.md)
+"""
+
+TAGS_METADATA = [
+    {
+        "name": "Search",
+        "description": "Natural-language and photo product search, backed by two-stage retrieval + RAG.",
+    },
+    {
+        "name": "Verification",
+        "description": "Does the delivered item match what was ordered — and how many arrived?",
+    },
+    {"name": "Feedback", "description": "Explicit thumbs up/down on a prior response, for the retraining loop."},
+    {"name": "Conversations", "description": "List and resume a user's past conversation history."},
+    {"name": "System", "description": "Liveness and Prometheus metrics."},
+]
+
+app = FastAPI(
+    title="ShopTalk-X API",
+    description=API_DESCRIPTION,
+    version="1.0.0",
+    contact={"name": "ShopTalk-X", "url": "https://github.com/Krishhs89/shoptalk-x"},
+    license_info={"name": "See repository for license terms"},
+    openapi_tags=TAGS_METADATA,
+    lifespan=lifespan,
+)
 
 
 def _hits_to_products(hits: list) -> list:
@@ -142,7 +179,10 @@ async def latency_and_metrics_middleware(request: Request, call_next):
     return response
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get(
+    "/health", response_model=HealthResponse,
+    tags=["System"], summary="Liveness + which models are actually loaded",
+)
 def health():
     cfg = _state["cfg"]
     # The in-process models (embedding/reranker/CLIP/BLIP) are warmed at
@@ -172,7 +212,7 @@ def health():
     )
 
 
-@app.get("/metrics")
+@app.get("/metrics", tags=["System"], summary="Prometheus exposition format")
 def metrics():
     return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
@@ -258,7 +298,10 @@ def _respond_or_stream(
     return response_cls(**fields)
 
 
-@app.post("/search/text", response_model=SearchResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/search/text", response_model=SearchResponse, dependencies=[Depends(require_api_key)],
+    tags=["Search"], summary="Natural-language product search",
+)
 def search_text(req: TextSearchRequest, request: Request):
     enforce_rate_limit(request)
     cfg = _state["cfg"]
@@ -323,7 +366,10 @@ def search_text(req: TextSearchRequest, request: Request):
     return response
 
 
-@app.post("/search/image", response_model=ImageSearchResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/search/image", response_model=ImageSearchResponse, dependencies=[Depends(require_api_key)],
+    tags=["Search"], summary="Photo-based product search",
+)
 async def search_image(
     request: Request,
     file: UploadFile = File(...),
@@ -370,7 +416,10 @@ async def search_image(
     )
 
 
-@app.post("/verify", response_model=VerifyResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/verify", response_model=VerifyResponse, dependencies=[Depends(require_api_key)],
+    tags=["Verification"], summary="Does the delivered photo match the ordered item?",
+)
 async def verify(request: Request, order_item_id: str, file: UploadFile = File(...)):
     enforce_rate_limit(request)
     content = await file.read()
@@ -385,7 +434,9 @@ async def verify(request: Request, order_item_id: str, file: UploadFile = File(.
         tmp.write(content)
         tmp_path = tmp.name
     try:
+        t0 = time.perf_counter()
         result = verify_photo(tmp_path, order_item_id, cfg=_state["cfg"])
+        latency_ms = (time.perf_counter() - t0) * 1000
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -395,10 +446,14 @@ async def verify(request: Request, order_item_id: str, file: UploadFile = File(.
         threshold=result["threshold"],
         order_item_id=order_item_id,
         request_id=str(uuid.uuid4()),
+        latency_ms=latency_ms,
     )
 
 
-@app.post("/verify/quantity", response_model=QuantityCheckResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/verify/quantity", response_model=QuantityCheckResponse, dependencies=[Depends(require_api_key)],
+    tags=["Verification"], summary="Does the delivered count match the claimed quantity?",
+)
 async def verify_quantity_endpoint(
     request: Request, order_item_id: str, claimed_qty: int, file: UploadFile = File(...)
 ):
@@ -417,7 +472,9 @@ async def verify_quantity_endpoint(
         tmp.write(content)
         tmp_path = tmp.name
     try:
+        t0 = time.perf_counter()
         result = verify_quantity(tmp_path, order_item_id, claimed_qty, cfg=_state["cfg"])
+        latency_ms = (time.perf_counter() - t0) * 1000
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -429,10 +486,11 @@ async def verify_quantity_endpoint(
         message=result.get("message"),
         order_item_id=order_item_id,
         request_id=str(uuid.uuid4()),
+        latency_ms=latency_ms,
     )
 
 
-@app.post("/feedback")
+@app.post("/feedback", tags=["Feedback"], summary="Thumbs up/down on a prior response")
 def feedback(req: FeedbackRequest):
     if req.rating not in (-1, 1):
         raise HTTPException(status_code=422, detail="rating must be +1 or -1")
@@ -440,7 +498,10 @@ def feedback(req: FeedbackRequest):
     return {"status": "recorded"}
 
 
-@app.get("/conversations", response_model=ConversationListResponse, dependencies=[Depends(require_api_key)])
+@app.get(
+    "/conversations", response_model=ConversationListResponse, dependencies=[Depends(require_api_key)],
+    tags=["Conversations"], summary="List a user's past conversations",
+)
 def list_conversations(user_name: str, limit: int = 20):
     if not user_name.strip():
         raise HTTPException(status_code=422, detail="user_name is required")
@@ -451,6 +512,8 @@ def list_conversations(user_name: str, limit: int = 20):
     "/conversations/{session_id}",
     response_model=ConversationDetailResponse,
     dependencies=[Depends(require_api_key)],
+    tags=["Conversations"],
+    summary="Resume a specific past conversation",
 )
 def get_conversation(session_id: str):
     convo = logging_store.load_conversation(session_id)
