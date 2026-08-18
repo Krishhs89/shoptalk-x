@@ -6,6 +6,7 @@ conversational text/photo search over a ~10k-product catalog, plus a
 "did I get the right item?" photo-verification flow.
 
 **Start here:**
+- **Requirements, approach, and a start-to-finish build guide (read this to reproduce the whole project yourself)** → [docs/PROJECT_DEFINITION.md](docs/PROJECT_DEFINITION.md)
 - **How do I use the running app?** → [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md)
 - **How does a request/build/deploy actually flow?** → [docs/WORKFLOW.md](docs/WORKFLOW.md)
 - **What does it do?** → [docs/FUNCTIONAL_OVERVIEW.md](docs/FUNCTIONAL_OVERVIEW.md)
